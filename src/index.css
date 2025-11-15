@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: #EDEBEB;
+  color: #191919;
+  min-height: 100vh;
+}
+
+/* Custom utility classes for our theme */
+.bg-background {
+  background-color: #EDEBEB;
+}
+
+.text-text-main {
+  color: #191919;
+}
+
+#root {
+  min-height: 100vh;
+}
