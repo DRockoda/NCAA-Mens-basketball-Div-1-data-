@@ -20,8 +20,8 @@ function TeamNameFilter({
   ).slice(0, 10);
 
   return (
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+    <div className="mb-4 min-w-0">
+      <label className="block text-sm font-medium text-gray-700 mb-1 truncate">
         {col.label}
       </label>
       <input
@@ -113,6 +113,7 @@ export function FiltersPanel({
   mode,
 }: FiltersPanelProps) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [activeTab, setActiveTab] = useState<'manage-columns' | 'filters'>('filters');
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
 
@@ -133,8 +134,8 @@ export function FiltersPanel({
     if (col.type === 'string') {
       const stringFilter = currentFilter as { type: 'string'; value: string } | undefined;
       return (
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="mb-4 min-w-0">
+          <label className="block text-sm font-medium text-gray-700 mb-1 truncate">
             {col.label}
           </label>
           <input
@@ -144,17 +145,79 @@ export function FiltersPanel({
               onFilterChange(col.id, e.target.value ? { type: 'string', value: e.target.value } : undefined)
             }
             placeholder={`Filter ${col.label}...`}
-            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary min-w-0"
           />
         </div>
       );
     }
 
     if (col.type === 'number') {
-      const numberFilter = currentFilter as { type: 'number'; min?: number; max?: number } | undefined;
+      const numberFilter = currentFilter as { type: 'number'; min?: number; max?: number; operator?: '>' | '>=' | '<' | '<='; value?: number } | undefined;
+      
+      // For players and teams mode, use operator-based filtering
+      if (mode === 'players' || mode === 'teams') {
+        return (
+          <div className="mb-4 min-w-0">
+            <label className="block text-sm font-medium text-gray-700 mb-1 truncate">
+              {col.label}
+            </label>
+            <div className="flex gap-2">
+              <select
+                value={numberFilter?.operator || ''}
+                onChange={(e) => {
+                  const operator = e.target.value as '>' | '>=' | '<' | '<=' | '';
+                  if (operator) {
+                    onFilterChange(col.id, {
+                      type: 'number',
+                      operator: operator as '>' | '>=' | '<' | '<=',
+                      value: numberFilter?.value,
+                    });
+                  } else {
+                    onFilterChange(col.id, undefined);
+                  }
+                }}
+                className="px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary bg-white min-w-0"
+              >
+                <option value="">Select operator</option>
+                <option value=">">&gt;</option>
+                <option value=">=">&gt;=</option>
+                <option value="<">&lt;</option>
+                <option value="<=">&lt;=</option>
+              </select>
+              <input
+                type="number"
+                value={numberFilter?.value ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value ? Number(e.target.value) : undefined;
+                  if (numberFilter?.operator) {
+                    onFilterChange(col.id, {
+                      type: 'number',
+                      operator: numberFilter.operator,
+                      value,
+                    });
+                  } else if (value !== undefined) {
+                    // If operator is not selected but value is entered, don't apply filter yet
+                    onFilterChange(col.id, {
+                      type: 'number',
+                      value,
+                    });
+                  } else {
+                    onFilterChange(col.id, undefined);
+                  }
+                }}
+                placeholder="Value"
+                className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary min-w-0"
+                disabled={!numberFilter?.operator}
+              />
+            </div>
+          </div>
+        );
+      }
+      
+      // For other modes, use min/max range filtering
       return (
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="mb-4 min-w-0">
+          <label className="block text-sm font-medium text-gray-700 mb-1 truncate">
             {col.label}
           </label>
           <div className="flex gap-2">
@@ -169,7 +232,7 @@ export function FiltersPanel({
                 })
               }
               placeholder="Min"
-              className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary min-w-0"
             />
             <input
               type="number"
@@ -182,7 +245,7 @@ export function FiltersPanel({
                 })
               }
               placeholder="Max"
-              className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary min-w-0"
             />
           </div>
         </div>
@@ -207,7 +270,7 @@ export function FiltersPanel({
                   to: dateFilter?.to,
                 })
               }
-              className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <input
               type="date"
@@ -219,7 +282,7 @@ export function FiltersPanel({
                   to: e.target.value || undefined,
                 })
               }
-              className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
         </div>
@@ -233,29 +296,37 @@ export function FiltersPanel({
 
       const isSeason = col.id.toLowerCase().includes('season');
       const isConference = col.id.toLowerCase().includes('conference');
-      const isTeam = col.id.toLowerCase().includes('team') && (col.id.toLowerCase().includes('name') || col.label.toLowerCase().includes('team name'));
-      
-      // Check for Transfer Rank early - by label or ID patterns
-      const isTransferRankEarly = (col.label.toLowerCase().includes('transfer') && 
-                                   col.label.toLowerCase().includes('rank') && 
-                                   !col.label.toLowerCase().includes('hs')) ||
-                                  (col.id.toLowerCase().includes('transfer') && 
-                                   col.id.toLowerCase().includes('rank') && 
-                                   !col.id.toLowerCase().includes('hs')) ||
-                                  col.id.toLowerCase() === 'transfer_rank';
+      const isClass = col.id.toLowerCase().includes('class');
+      const isTeam = col.id.toLowerCase().includes('team') && (col.id.toLowerCase().includes('name') || col.label.toLowerCase().includes('teamname'));
 
       // Season: Single select dropdown
       if (isSeason) {
-        // Sort seasons numerically (years)
-        const sortedSeasons = [...distinctValues].sort((a, b) => {
+        // Use the actual column ID to get distinct values
+        // distinctValues should already have values if the column exists in data
+        let seasonsToDisplay = distinctValues;
+        
+        // If still empty, try alternative column ID variations
+        if (seasonsToDisplay.length === 0) {
+          const altIds = ['Season', 'season', 'Year', 'year'];
+          for (const altId of altIds) {
+            const altValues = getDistinctValues(altId);
+            if (altValues.length > 0) {
+              seasonsToDisplay = altValues;
+              break;
+            }
+          }
+        }
+        
+        // Sort seasons numerically (years) - most recent first
+        const sortedSeasons = [...seasonsToDisplay].sort((a, b) => {
           const yearA = parseInt(a) || 0;
           const yearB = parseInt(b) || 0;
           return yearB - yearA; // Most recent first
         });
 
         return (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="mb-4 min-w-0">
+            <label className="block text-sm font-medium text-gray-700 mb-1 truncate">
               {col.label}
             </label>
             <select
@@ -263,14 +334,18 @@ export function FiltersPanel({
               onChange={(e) =>
                 onFilterChange(col.id, e.target.value ? { type: 'categorical', values: [e.target.value] } : undefined)
               }
-              className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary bg-white min-w-0"
             >
               <option value="">All Seasons</option>
-              {sortedSeasons.map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              ))}
+              {sortedSeasons.length > 0 ? (
+                sortedSeasons.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))
+              ) : (
+                <option disabled>No seasons found</option>
+              )}
             </select>
           </div>
         );
@@ -279,11 +354,11 @@ export function FiltersPanel({
       // Conference: Multi-select checkboxes
       if (isConference) {
         return (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="mb-4 min-w-0">
+            <label className="block text-sm font-medium text-gray-700 mb-1 truncate">
               {col.label}
             </label>
-            <div className="max-h-60 overflow-y-auto border border-gray-300 rounded p-2 space-y-1">
+            <div className="max-h-60 overflow-y-auto overflow-x-hidden border border-gray-300 rounded p-2 space-y-1">
               {distinctValues.sort().map((value) => (
                 <label key={value} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
                   <input
@@ -310,6 +385,32 @@ export function FiltersPanel({
         );
       }
 
+      // Class: Dropdown (like Season)
+      if (isClass && mode === 'players') {
+        const sortedClasses = [...distinctValues].sort();
+        return (
+          <div className="mb-4 min-w-0">
+            <label className="block text-sm font-medium text-gray-700 mb-1 truncate">
+              {col.label}
+            </label>
+            <select
+              value={selectedValues[0] || ''}
+              onChange={(e) =>
+                onFilterChange(col.id, e.target.value ? { type: 'categorical', values: [e.target.value] } : undefined)
+              }
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary bg-white min-w-0"
+            >
+              <option value="">All Classes</option>
+              {sortedClasses.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+      }
+
       // Team Name: Text input with multi-select capability
       if (isTeam) {
         // We'll create a separate component for team filter to use useState
@@ -324,9 +425,10 @@ export function FiltersPanel({
       // Check for Transfer Rank early and explicitly
       // Check by label first (more reliable), then by ID patterns
       const isTransferRank = (mode === 'transfers' && 
-                              ((col.label.toLowerCase().includes('transfer') && 
+                              ((col.label.toLowerCase().includes('transferrank') || 
+                                (col.label.toLowerCase().includes('transfer') && 
                                 col.label.toLowerCase().includes('rank') && 
-                                !col.label.toLowerCase().includes('hs')) ||
+                                !col.label.toLowerCase().includes('hs'))) ||
                                col.id.toLowerCase().includes('transfer_rank') || 
                                col.id.toLowerCase() === 'transfer_rank' ||
                                col.id.toLowerCase().includes('transferrank') ||
@@ -335,7 +437,8 @@ export function FiltersPanel({
                                 !col.id.toLowerCase().includes('hs'))));
       
       // Check for HS Ranking
-      const isHSRanking = col.id.toLowerCase().includes('hs_ranking') || 
+      const isHSRanking = col.label.toLowerCase().includes('hsranking') ||
+                         col.id.toLowerCase().includes('hs_ranking') || 
                          col.id.toLowerCase().includes('hsranking') ||
                          (col.id.toLowerCase().includes('hs') && col.id.toLowerCase().includes('rank'));
       
@@ -357,7 +460,7 @@ export function FiltersPanel({
               onChange={(e) =>
                 onFilterChange(col.id, e.target.value ? { type: 'categorical', values: [e.target.value] } : undefined)
               }
-              className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             >
               <option value="">All {col.label}</option>
               {options.map((value) => (
@@ -384,7 +487,7 @@ export function FiltersPanel({
               onChange={(e) =>
                 onFilterChange(col.id, e.target.value ? { type: 'categorical', values: [e.target.value] } : undefined)
               }
-              className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             >
               <option value="">All {col.label}</option>
               {options.map((value) => (
@@ -410,7 +513,7 @@ export function FiltersPanel({
               onFilterChange(col.id, e.target.value ? { type: 'categorical', values: [e.target.value] } : undefined)
             }
             placeholder={`Filter ${col.label}...`}
-            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
       );
@@ -420,7 +523,7 @@ export function FiltersPanel({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4">
+    <div className="bg-white rounded-lg shadow-md p-3 lg:p-4 w-full max-w-full overflow-hidden" style={{ maxWidth: '100%' }}>
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center justify-between mb-4 font-semibold text-text-main"
@@ -430,13 +533,42 @@ export function FiltersPanel({
       </button>
 
       {isExpanded && (
-        <div className="space-y-4">
-          {/* Column Selection */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium text-text-main">Visible Columns</h3>
-              <div className="flex gap-1">
-                <button
+        <div className="w-full" style={{ maxWidth: '100%' }}>
+          {/* Tabs */}
+          <div className="flex border-b border-gray-200 mb-4">
+            <button
+              type="button"
+              onClick={() => setActiveTab('filters')}
+              className={`flex-1 py-2 px-3 text-sm font-medium transition-colors ${
+                activeTab === 'filters'
+                  ? 'text-primary border-b-2 border-primary bg-primary/5'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              Filters
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('manage-columns')}
+              className={`flex-1 py-2 px-3 text-sm font-medium transition-colors ${
+                activeTab === 'manage-columns'
+                  ? 'text-primary border-b-2 border-primary bg-primary/5'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              Manage Columns
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          <div className="overflow-y-auto overflow-x-hidden max-h-[calc(100vh-300px)] pr-1 w-full" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
+            {/* Manage Columns Tab */}
+            {activeTab === 'manage-columns' && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-medium text-text-main">Visible Columns</h3>
+                  <div className="flex gap-1">
+                    <button
                   type="button"
                   onClick={() => {
                     if (onSelectAllColumns) {
@@ -487,9 +619,9 @@ export function FiltersPanel({
                 >
                   None
                 </button>
-              </div>
-            </div>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
+                  </div>
+                </div>
+                <div className="space-y-2">
               {(() => {
                 // Filter out S. No. and similar columns
                 const filteredColumns = columns.filter(col => {
@@ -528,12 +660,6 @@ export function FiltersPanel({
                   // If neither is in columnOrder, maintain original order
                   return 0;
                 });
-                
-                // Add any columns from columnOrder that aren't in sortedColumns yet
-                const sortedIds = new Set(sortedColumns.map(c => c.id));
-                const missingColumns = columnOrder
-                  .map(colId => filteredColumns.find(c => c.id === colId))
-                  .filter((col): col is ColumnConfig => col !== undefined && !sortedIds.has(col.id));
                 
                 // Insert missing columns at their correct positions
                 const finalSorted: ColumnConfig[] = [];
@@ -681,23 +807,25 @@ export function FiltersPanel({
                   );
                 });
               })()}
-            </div>
-          </div>
+                </div>
+              </div>
+            )}
 
-          {/* Filters */}
-          <div className="border-t pt-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium text-text-main">Filters</h3>
-              {onResetFilters && (
-                <button
-                  onClick={onResetFilters}
-                  className="text-xs text-primary hover:text-primary/80 underline"
-                >
-                  Reset All
-                </button>
-              )}
-            </div>
-            <div className="space-y-2">
+            {/* Filters Tab */}
+            {activeTab === 'filters' && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-medium text-text-main">Filters</h3>
+                  {onResetFilters && (
+                    <button
+                      onClick={onResetFilters}
+                      className="text-xs text-primary hover:text-primary/80 underline"
+                    >
+                      Reset All
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-2 overflow-x-hidden w-full" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
               {mode === 'transfers' ? (
                 // For transfers, show Season, Transfer_Rank, and HS_Ranking
                 (() => {
@@ -733,13 +861,78 @@ export function FiltersPanel({
                     <div key={col.id}>{renderFilter(col)}</div>
                   ));
                 })()
+              ) : mode === 'players' ? (
+                // For players, show only specified filterable columns in order (without Name)
+                (() => {
+                  const playerFilterIds = [
+                    'P_Rank', 'Conference', 'Position', 'Season', 'Class',
+                    'GP', 'MIN', 'PTS', 'AST', 'REB', 'Off_Reb', 'Def_Reb', 'BLK', 'STL', 'TO',
+                    'FG%', '3P%', 'FT%', 'TS%', 'OBPR', 'DBPR', 'BPR', 'POSS', 'USG%',
+                    'Box_OBPR', 'Box_DBPR', 'Box_BPR', 'Team_PRPG',
+                    'Adj_team_Off_Eff', 'Adj_team_Deff_Eff', 'Adj_team_Eff_Margn', 'Team_Net_Score'
+                  ];
+                  
+                  const orderedFilters: ColumnConfig[] = [];
+                  for (const colId of playerFilterIds) {
+                    const found = columns.find(col => 
+                      col.filterable && 
+                      (col.id.toLowerCase() === colId.toLowerCase() || 
+                       col.id.toLowerCase().replace(/_/g, '') === colId.toLowerCase().replace(/_/g, '') ||
+                       col.id.toLowerCase().replace(/%/g, '') === colId.toLowerCase().replace(/%/g, ''))
+                    );
+                    if (found && !orderedFilters.some(f => f.id === found.id)) {
+                      orderedFilters.push(found);
+                    }
+                  }
+                  
+                  return orderedFilters.map((col) => (
+                    <div key={col.id}>{renderFilter(col)}</div>
+                  ));
+                })()
+              ) : mode === 'teams' ? (
+                // For teams, show only specified filterable columns in order
+                (() => {
+                  const teamFilterIds = [
+                    'Team_Rank', 'Season', 'Conference', 'Team_Win%', 'Team_Q1_Wins', 'Team_Conf_Wins%', 'Team_Conf_Rank',
+                    'NCAA_Seed', 'Team_GP', 'Team_PTS', 'Team_Reb', 'Team_Off_Reb', 'Team_Def_Reb', 'Team_BLK', 'Team_STL', 'Team_TO',
+                    'Team_FG%', 'Team_3P%', 'Team_FT%', 'Team_Adj_Off_Eff', 'Team_Adj_Def_Eff',
+                    'Team_OBPR', 'Team_DBPR', 'Team_BPR', 'Team_Adj_Tempo', 'Team_BARTHAG'
+                  ];
+                  
+                  const orderedFilters: ColumnConfig[] = [];
+                  for (const colId of teamFilterIds) {
+                    const found = columns.find(col => {
+                      if (!col.filterable) return false;
+                      
+                      // Special handling for Season column - check both ID and label
+                      if (colId.toLowerCase() === 'season') {
+                        return col.id.toLowerCase().includes('season') || 
+                               col.label.toLowerCase().includes('season');
+                      }
+                      
+                      // For other columns, use existing matching logic
+                      return col.id.toLowerCase() === colId.toLowerCase() || 
+                             col.id.toLowerCase().replace(/_/g, '') === colId.toLowerCase().replace(/_/g, '') ||
+                             col.id.toLowerCase().replace(/%/g, '') === colId.toLowerCase().replace(/%/g, '');
+                    });
+                    if (found && !orderedFilters.some(f => f.id === found.id)) {
+                      orderedFilters.push(found);
+                    }
+                  }
+                  
+                  return orderedFilters.map((col) => (
+                    <div key={col.id}>{renderFilter(col)}</div>
+                  ));
+                })()
               ) : (
-                // For teams and players, show all filterable columns
+                // Fallback: show all filterable columns
                 columns.filter(col => col.filterable).map((col) => (
                   <div key={col.id}>{renderFilter(col)}</div>
                 ))
               )}
-            </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

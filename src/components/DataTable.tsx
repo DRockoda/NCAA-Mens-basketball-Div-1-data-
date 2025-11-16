@@ -99,9 +99,10 @@ export function DataTable({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
-      <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: 'calc(100vh - 350px)' }}>
-        <table className="w-full">
+    <div className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-full">
+      <div className="overflow-x-auto overflow-y-auto flex-1" style={{ maxHeight: 'calc(100vh - 350px)' }}>
+        <div className="inline-block min-w-full">
+          <table className="w-full" style={{ tableLayout: 'auto' }}>
           <thead className="bg-primary text-white sticky top-0 z-10">
             <tr>
               {visibleCols.map((col) => (
@@ -152,16 +153,36 @@ export function DataTable({
                     rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                   } hover:bg-gray-100 transition-colors`}
                 >
-                  {visibleCols.map((col) => (
-                    <td key={col.id} className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-700 whitespace-nowrap">
-                      {formatValue(row[col.id], col.type)}
-                    </td>
-                  ))}
+                  {visibleCols.map((col) => {
+                    // Try to find the value using multiple key variations
+                    let cellValue = row[col.id];
+                    
+                    // If not found, try case-insensitive matching
+                    if (cellValue === undefined || cellValue === null || cellValue === '') {
+                      const rowKeys = Object.keys(row);
+                      const matchingKey = rowKeys.find(key => 
+                        key.toLowerCase() === col.id.toLowerCase() ||
+                        key.replace(/\s+/g, '_').toLowerCase() === col.id.toLowerCase() ||
+                        key.replace(/\s+/g, '').toLowerCase() === col.id.replace(/_/g, '').toLowerCase() ||
+                        key.replace(/_/g, '').toLowerCase() === col.id.replace(/_/g, '').toLowerCase()
+                      );
+                      if (matchingKey) {
+                        cellValue = row[matchingKey];
+                      }
+                    }
+                    
+                    return (
+                      <td key={col.id} className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-700 whitespace-nowrap">
+                        {formatValue(cellValue, col.type)}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Pagination */}

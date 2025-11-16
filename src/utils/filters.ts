@@ -1,7 +1,7 @@
 import type { ColumnConfig } from '../config/columns';
 
 export type StringFilter = { type: 'string'; value: string };
-export type NumberFilter = { type: 'number'; min?: number; max?: number };
+export type NumberFilter = { type: 'number'; min?: number; max?: number; operator?: '>' | '>=' | '<' | '<='; value?: number };
 export type DateFilter = { type: 'date'; from?: string; to?: string };
 export type CategoricalFilter = { type: 'categorical'; values: string[] };
 
@@ -32,8 +32,29 @@ export function applyFilters(
       if (filter.type === 'number') {
         const num = Number(value);
         if (!Number.isFinite(num)) return false;
-        if (filter.min !== undefined && num < filter.min) return false;
-        if (filter.max !== undefined && num > filter.max) return false;
+        
+        // Support operator-based filtering (>, >=, <, <=) with single value
+        if (filter.operator && filter.value !== undefined) {
+          const filterValue = filter.value;
+          switch (filter.operator) {
+            case '>':
+              if (!(num > filterValue)) return false;
+              break;
+            case '>=':
+              if (!(num >= filterValue)) return false;
+              break;
+            case '<':
+              if (!(num < filterValue)) return false;
+              break;
+            case '<=':
+              if (!(num <= filterValue)) return false;
+              break;
+          }
+        } else {
+          // Fallback to min/max range filtering
+          if (filter.min !== undefined && num < filter.min) return false;
+          if (filter.max !== undefined && num > filter.max) return false;
+        }
       }
 
       if (filter.type === 'date') {

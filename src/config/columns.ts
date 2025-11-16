@@ -13,45 +13,81 @@ export type ColumnConfig = {
 // The actual columns will be inferred from the first row of data
 
 export const teamColumns: ColumnConfig[] = [
-  { id: 'Team_Name', label: 'Team Name', type: 'string', filterable: true, searchable: true, defaultVisible: true },
-  { id: 'TeamName', label: 'Team Name', type: 'string', filterable: true, searchable: true, defaultVisible: false }, // Alternative column name
+  { id: 'Team_Rank', label: 'Team_Rank', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_Name', label: 'Team_Name', type: 'categorical', filterable: false, searchable: true, defaultVisible: true },
   { id: 'Conference', label: 'Conference', type: 'categorical', filterable: true, searchable: true, defaultVisible: true },
   { id: 'Season', label: 'Season', type: 'categorical', filterable: true, searchable: false, defaultVisible: true },
-  { id: 'Team_Rank', label: 'Team Rank', type: 'number', filterable: true, searchable: false, defaultVisible: true },
-  { id: 'Team_Win%', label: 'Win %', type: 'number', filterable: true, searchable: false, defaultVisible: true },
-  { id: 'Team_Q1_Wins', label: 'Q1 Wins', type: 'number', filterable: true, searchable: false, defaultVisible: true },
-  { id: 'Team_Conf_Wins%', label: 'Conf Win %', type: 'number', filterable: true, searchable: false, defaultVisible: true },
-  { id: 'Team_Conf_Rank', label: 'Conf Rank', type: 'number', filterable: true, searchable: false, defaultVisible: true },
-  // Legacy column names for backward compatibility
-  { id: 'Wins', label: 'Wins', type: 'number', filterable: true, searchable: false, defaultVisible: false },
-  { id: 'Losses', label: 'Losses', type: 'number', filterable: true, searchable: false, defaultVisible: false },
-  { id: 'WinPercentage', label: 'Win %', type: 'number', filterable: true, searchable: false, defaultVisible: false },
-  { id: 'PointsPerGame', label: 'Points/Game', type: 'number', filterable: true, searchable: false, defaultVisible: false },
+  { id: 'Team_Win%', label: 'Team_Win%', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_Q1_Wins', label: 'Team_Q1_Wins', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_Conf_Wins%', label: 'Team_Conf_Wins%', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_Conf_Rank', label: 'Team_Conf_Rank', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'NCAA_Seed', label: 'NCAA_Seed', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_GP', label: 'Team_GP', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_PTS', label: 'Team_PTS', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_Reb', label: 'Team_Reb', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_Off_Reb', label: 'Team_Off_Reb', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_Def_Reb', label: 'Team_Def_Reb', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_BLK', label: 'Team_BLK', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_STL', label: 'Team_STL', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_TO', label: 'Team_TO', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_FG%', label: 'Team_FG%', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_3P%', label: 'Team_3P%', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_FT%', label: 'Team_FT%', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_Adj_Off_Eff', label: 'Team_Adj_Off_Eff', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_Adj_Def_Eff', label: 'Team_Adj_Def_Eff', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_OBPR', label: 'Team_OBPR', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_DBPR', label: 'Team_DBPR', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_BPR', label: 'Team_BPR', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_Adj_Tempo', label: 'Team_Adj_Tempo', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_BARTHAG', label: 'Team_BARTHAG', type: 'number', filterable: true, searchable: false, defaultVisible: true },
 ];
 
 export const playerColumns: ColumnConfig[] = [
-  { id: 'Name', label: 'Player Name', type: 'string', filterable: true, searchable: true, defaultVisible: true },
-  { id: 'PlayerName', label: 'Player Name', type: 'string', filterable: true, searchable: true, defaultVisible: false }, // Alternative
-  { id: 'Team', label: 'Team', type: 'categorical', filterable: true, searchable: true, defaultVisible: true },
+  { id: 'P_Rank', label: 'P_Rank', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Name', label: 'Name', type: 'string', filterable: false, searchable: true, defaultVisible: true },
+  { id: 'Team', label: 'Team', type: 'categorical', filterable: false, searchable: true, defaultVisible: true },
+  { id: 'Conference', label: 'Conference', type: 'categorical', filterable: true, searchable: true, defaultVisible: true },
+  { id: 'Hometown', label: 'Hometown', type: 'string', filterable: false, searchable: false, defaultVisible: true },
+  { id: 'Height', label: 'Height', type: 'string', filterable: false, searchable: false, defaultVisible: true },
   { id: 'Position', label: 'Position', type: 'categorical', filterable: true, searchable: false, defaultVisible: true },
   { id: 'Season', label: 'Season', type: 'categorical', filterable: true, searchable: false, defaultVisible: true },
-  { id: 'PointsPerGame', label: 'Points/Game', type: 'number', filterable: true, searchable: false, defaultVisible: true },
-  { id: 'ReboundsPerGame', label: 'Rebounds/Game', type: 'number', filterable: true, searchable: false, defaultVisible: true },
-  { id: 'AssistsPerGame', label: 'Assists/Game', type: 'number', filterable: true, searchable: false, defaultVisible: true },
-  { id: 'Team_PRPG', label: 'Team PRPG', type: 'number', filterable: true, searchable: false, defaultVisible: false },
-  { id: 'Adj_team_Off_Eff', label: 'Adj Off Eff', type: 'number', filterable: true, searchable: false, defaultVisible: false },
-  { id: 'Adj_team_Deff_Eff', label: 'Adj Def Eff', type: 'number', filterable: true, searchable: false, defaultVisible: false },
-  { id: 'GamesPlayed', label: 'Games Played', type: 'number', filterable: true, searchable: false, defaultVisible: false },
-  { id: 'MinutesPerGame', label: 'Minutes/Game', type: 'number', filterable: true, searchable: false, defaultVisible: false },
+  { id: 'Class', label: 'Class', type: 'categorical', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'GP', label: 'GP', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'MIN', label: 'MIN', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'PTS', label: 'PTS', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'AST', label: 'AST', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'REB', label: 'REB', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Off_Reb', label: 'Off_Reb', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Def_Reb', label: 'Def_Reb', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'BLK', label: 'BLK', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'STL', label: 'STL', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'TO', label: 'TO', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'FG%', label: 'FG%', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: '3P%', label: '3P%', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'FT%', label: 'FT%', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'TS%', label: 'TS%', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'OBPR', label: 'OBPR', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'DBPR', label: 'DBPR', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'BPR', label: 'BPR', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'POSS', label: 'POSS', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'USG%', label: 'USG%', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Box_OBPR', label: 'Box_OBPR', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Box_DBPR', label: 'Box_DBPR', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Box_BPR', label: 'Box_BPR', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_PRPG', label: 'Team_PRPG', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Adj_team_Off_Eff', label: 'Adj_team_Off_Eff', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Adj_team_Deff_Eff', label: 'Adj_team_Deff_Eff', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Adj_team_Eff_Margn', label: 'Adj_team_Eff_Margn', type: 'number', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Team_Net_Score', label: 'Team_Net_Score', type: 'number', filterable: true, searchable: false, defaultVisible: true },
 ];
 
 export const transferColumns: ColumnConfig[] = [
   { id: 'Season', label: 'Season', type: 'categorical', filterable: true, searchable: false, defaultVisible: true },
-  { id: 'Transfer_Rank', label: 'Transfer Rank', type: 'categorical', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'Transfer_Rank', label: 'TransferRank', type: 'categorical', filterable: true, searchable: false, defaultVisible: true },
   { id: 'Name', label: 'Name', type: 'string', filterable: false, searchable: true, defaultVisible: true },
   { id: 'Team', label: 'Team', type: 'string', filterable: false, searchable: false, defaultVisible: true },
-  { id: 'New_Team', label: 'New Team', type: 'string', filterable: false, searchable: false, defaultVisible: true },
-  { id: 'HS_Ranking', label: 'HS Ranking', type: 'categorical', filterable: true, searchable: false, defaultVisible: true },
+  { id: 'New_Team', label: 'NewTeam', type: 'string', filterable: false, searchable: false, defaultVisible: true },
+  { id: 'HS_Ranking', label: 'HSRanking', type: 'categorical', filterable: true, searchable: false, defaultVisible: true },
 ];
 
 export function getColumnsForMode(mode: 'teams' | 'players' | 'transfers'): ColumnConfig[] {
@@ -114,13 +150,13 @@ export function inferColumnsFromData(data: any[], mode: 'teams' | 'players' | 't
         };
       }
 
-      // Check if it's Name column (for players/transfers) - map to PlayerName
+      // Check if it's Name column (for players/transfers)
       if (key.toLowerCase() === 'name' && (mode === 'players' || mode === 'transfers')) {
         return {
           id: key, // Keep 'Name' as the actual column ID
-          label: 'Player Name',
+          label: mode === 'players' ? 'Name' : 'Name', // Use 'Name' label for players and transfers
           type: 'string' as ColumnType,
-          filterable: false, // Not filterable for transfers
+          filterable: mode === 'players', // Filterable for players, not for transfers
           searchable: true,
           defaultVisible: true,
         };
@@ -132,7 +168,7 @@ export function inferColumnsFromData(data: any[], mode: 'teams' | 'players' | 't
       if (isTransferRank && mode === 'transfers') {
         return {
           id: key,
-          label: 'Transfer Rank',
+          label: 'TransferRank',
           type: 'categorical' as ColumnType,
           filterable: true, // Now filterable with dropdown 1-5
           searchable: false,
@@ -145,7 +181,7 @@ export function inferColumnsFromData(data: any[], mode: 'teams' | 'players' | 't
       if (isHSRanking && mode === 'transfers') {
         return {
           id: key,
-          label: 'HS Ranking',
+          label: 'HSRanking',
           type: 'categorical' as ColumnType,
           filterable: true,
           searchable: false,
@@ -155,7 +191,7 @@ export function inferColumnsFromData(data: any[], mode: 'teams' | 'players' | 't
 
       return {
         id: key,
-        label: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim(),
+        label: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim().replace(/\s+/g, ''),
         type,
         filterable: true,
         searchable: type === 'string' || type === 'categorical',

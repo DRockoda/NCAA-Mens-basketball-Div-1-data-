@@ -58,8 +58,8 @@ export function DataExplorer({ mode }: DataExplorerProps) {
       // First, add all default columns (matching by ID or label)
       defaultCols.forEach(defaultCol => {
         // Skip if we already processed a column with the same label (for transfers, avoid duplicate Transfer Rank)
-        if (mode === 'transfers' && defaultCol.label === 'Transfer Rank') {
-          const alreadyHasTransferRank = merged.some(c => c.label === 'Transfer Rank');
+        if (mode === 'transfers' && defaultCol.label === 'TransferRank') {
+          const alreadyHasTransferRank = merged.some(c => c.label === 'TransferRank');
           if (alreadyHasTransferRank && defaultCol.id !== 'Transfer_Rank') {
             return; // Skip alternative TransferRank if we already have Transfer_Rank
           }
@@ -68,18 +68,23 @@ export function DataExplorer({ mode }: DataExplorerProps) {
         // Try to find by exact ID match first
         let inferredCol = inferred.find(c => c.id.toLowerCase() === defaultCol.id.toLowerCase());
         
-        // If not found, try to find by label (for Name -> PlayerName mapping)
-        if (!inferredCol && defaultCol.label === 'Player Name') {
+        // If not found, try to find by label (for Name -> Name mapping)
+        if (!inferredCol && defaultCol.id.toLowerCase() === 'name' && mode === 'players') {
           inferredCol = inferred.find(c => c.id.toLowerCase() === 'name');
         }
         
         // If still not found and it's Season, try to find any season column
         if (!inferredCol && defaultCol.id.toLowerCase().includes('season')) {
-          inferredCol = inferred.find(c => c.id.toLowerCase().includes('season'));
+          inferredCol = inferred.find(c => 
+            c.id.toLowerCase().includes('season') || 
+            c.label.toLowerCase().includes('season') ||
+            c.id.toLowerCase() === 'year' ||
+            c.label.toLowerCase() === 'year'
+          );
         }
         
         // If still not found and it's Transfer Rank, try to find any transfer rank column
-        if (!inferredCol && defaultCol.label === 'Transfer Rank') {
+        if (!inferredCol && defaultCol.label === 'TransferRank') {
           inferredCol = inferred.find(c => 
             (c.id.toLowerCase().includes('transfer') && c.id.toLowerCase().includes('rank'))
           );
@@ -92,14 +97,41 @@ export function DataExplorer({ mode }: DataExplorerProps) {
             ? defaultCol.filterable 
             : (defaultCol.filterable ?? inferredCol.filterable);
           
+          // For Season, use the inferred column's ID (which matches the data) but keep default label
+          const seasonId = (mode === 'teams' && defaultCol.id.toLowerCase() === 'season' && inferredCol.id.toLowerCase() !== 'season')
+            ? inferredCol.id  // Use the actual column ID from data
+            : inferredCol.id;
+          
           merged.push({
             ...inferredCol,
+            id: seasonId, // Use actual column ID from data for Season
             label: defaultCol.label,
             filterable: useDefaultFilterable,
             searchable: defaultCol.searchable ?? inferredCol.searchable,
             defaultVisible: defaultCol.defaultVisible ?? inferredCol.defaultVisible,
           });
         } else {
+          // For Season, try to find it in raw data even if not in inferred
+          if (mode === 'teams' && defaultCol.id.toLowerCase() === 'season') {
+            const rawKeys = rawData.length > 0 ? Object.keys(rawData[0]) : [];
+            const seasonKey = rawKeys.find(key => 
+              key.toLowerCase().includes('season') || 
+              key.toLowerCase() === 'year'
+            );
+            if (seasonKey) {
+              // Create a Season column from the actual data key
+              merged.push({
+                id: seasonKey,
+                label: 'Season',
+                type: 'categorical',
+                filterable: true,
+                searchable: false,
+                defaultVisible: true,
+              });
+              processedIds.add(seasonKey.toLowerCase());
+              return;
+            }
+          }
           merged.push(defaultCol);
         }
         processedIds.add(defaultCol.id.toLowerCase());
@@ -115,16 +147,52 @@ export function DataExplorer({ mode }: DataExplorerProps) {
         }
         
         // For transfers, skip if it's a duplicate Transfer Rank
-        if (mode === 'transfers' && inferredCol.label === 'Transfer Rank') {
-          const alreadyHasTransferRank = merged.some(c => c.label === 'Transfer Rank');
+        if (mode === 'transfers' && inferredCol.label === 'TransferRank') {
+          const alreadyHasTransferRank = merged.some(c => c.label === 'TransferRank');
           if (alreadyHasTransferRank) {
             return; // Skip duplicate
+          }
+        }
+        
+        // For teams, if this is a Season column and we already have one, skip
+        if (mode === 'teams' && (inferredCol.id.toLowerCase().includes('season') || inferredCol.label.toLowerCase().includes('season'))) {
+          const alreadyHasSeason = merged.some(c => 
+            c.id.toLowerCase().includes('season') || 
+            c.label.toLowerCase().includes('season')
+          );
+          if (alreadyHasSeason) {
+            return; // Skip duplicate Season
           }
         }
         
         merged.push(inferredCol);
         processedIds.add(inferredCol.id.toLowerCase());
       });
+      
+      // Ensure Season column exists for teams (add from data if missing)
+      if (mode === 'teams' && rawData.length > 0) {
+        const hasSeason = merged.some(c => 
+          c.id.toLowerCase().includes('season') || 
+          c.label.toLowerCase().includes('season')
+        );
+        if (!hasSeason) {
+          const rawKeys = Object.keys(rawData[0]);
+          const seasonKey = rawKeys.find(key => 
+            key.toLowerCase().includes('season') || 
+            key.toLowerCase() === 'year'
+          );
+          if (seasonKey) {
+            merged.push({
+              id: seasonKey,
+              label: 'Season',
+              type: 'categorical',
+              filterable: true,
+              searchable: false,
+              defaultVisible: true,
+            });
+          }
+        }
+      }
       
       // For transfers, remove duplicate Transfer Rank columns before setting
       let finalCols = merged;
@@ -133,7 +201,7 @@ export function DataExplorer({ mode }: DataExplorerProps) {
         merged.forEach(col => {
           const key = col.label.toLowerCase();
           // For Transfer Rank, prefer the one with Transfer_Rank ID and ensure it's filterable
-          if (col.label === 'Transfer Rank') {
+          if (col.label === 'TransferRank') {
             const existing = uniqueColsMap.get(key);
             if (!existing || col.id.toLowerCase() === 'transfer_rank') {
               // Ensure Transfer Rank is always filterable
@@ -153,7 +221,7 @@ export function DataExplorer({ mode }: DataExplorerProps) {
         
         // Ensure Transfer_Rank default column exists even if not in merged
         const hasTransferRank = finalCols.some(col => 
-          col.label === 'Transfer Rank' || 
+          col.label === 'TransferRank' || 
           (col.id.toLowerCase().includes('transfer') && col.id.toLowerCase().includes('rank'))
         );
         if (!hasTransferRank) {
@@ -164,7 +232,7 @@ export function DataExplorer({ mode }: DataExplorerProps) {
         } else {
           // Ensure existing Transfer Rank column is filterable
           finalCols = finalCols.map(col => {
-            if (col.label === 'Transfer Rank' || 
+            if (col.label === 'TransferRank' || 
                 (col.id.toLowerCase().includes('transfer') && col.id.toLowerCase().includes('rank') && !col.id.toLowerCase().includes('hs'))) {
               return { ...col, filterable: true };
             }
@@ -176,7 +244,106 @@ export function DataExplorer({ mode }: DataExplorerProps) {
       setColumns(finalCols);
       
       // Set default visible columns only if not already set
-      if (mode === 'transfers') {
+      if (mode === 'players') {
+        // For players, use the specified column order
+        const playerColumnOrder = [
+          'P_Rank', 'Name', 'Team', 'Conference', 'Hometown', 'Height', 'Position', 'Season', 'Class',
+          'GP', 'MIN', 'PTS', 'AST', 'REB', 'Off_Reb', 'Def_Reb', 'BLK', 'STL', 'TO',
+          'FG%', '3P%', 'FT%', 'TS%', 'OBPR', 'DBPR', 'BPR', 'POSS', 'USG%',
+          'Box_OBPR', 'Box_DBPR', 'Box_BPR', 'Team_PRPG',
+          'Adj_team_Off_Eff', 'Adj_team_Deff_Eff', 'Adj_team_Eff_Margn', 'Team_Net_Score'
+        ];
+        
+        // Get columns in the specified order
+        const orderedColumns: string[] = [];
+        for (const colId of playerColumnOrder) {
+          const found = finalCols.find(c => {
+            const cId = c.id.toLowerCase().replace(/_/g, '').replace(/%/g, '');
+            const searchId = colId.toLowerCase().replace(/_/g, '').replace(/%/g, '');
+            return c.id.toLowerCase() === colId.toLowerCase() || 
+                   cId === searchId ||
+                   (colId === 'FG%' && (c.id.includes('FG') || c.id.includes('fg'))) ||
+                   (colId === '3P%' && (c.id.includes('3P') || c.id.includes('3p'))) ||
+                   (colId === 'FT%' && (c.id.includes('FT') || c.id.includes('ft'))) ||
+                   (colId === 'TS%' && (c.id.includes('TS') || c.id.includes('ts'))) ||
+                   (colId === 'USG%' && (c.id.includes('USG') || c.id.includes('usg')));
+          });
+          if (found && !orderedColumns.includes(found.id)) {
+            orderedColumns.push(found.id);
+          }
+        }
+        
+        // Set default visible columns and order
+        if (visibleColumns.size === 0) {
+          setVisibleColumns(new Set(orderedColumns));
+        }
+        if (columnOrder.length === 0) {
+          setColumnOrder(orderedColumns);
+        }
+      } else if (mode === 'teams') {
+        // For teams, use the specified column order
+        const teamColumnOrder = [
+          'Team_Rank', 'Team_Name', 'Conference', 'Season', 'Team_Win%', 'Team_Q1_Wins', 'Team_Conf_Wins%', 'Team_Conf_Rank',
+          'NCAA_Seed', 'Team_GP', 'Team_PTS', 'Team_Reb', 'Team_Off_Reb', 'Team_Def_Reb', 'Team_BLK', 'Team_STL', 'Team_TO',
+          'Team_FG%', 'Team_3P%', 'Team_FT%', 'Team_Adj_Off_Eff', 'Team_Adj_Def_Eff',
+          'Team_OBPR', 'Team_DBPR', 'Team_BPR', 'Team_Adj_Tempo', 'Team_BARTHAG'
+        ];
+        
+        // Get columns in the specified order
+        const orderedColumns: string[] = [];
+        for (const colId of teamColumnOrder) {
+          const found = finalCols.find(c => {
+            // Special handling for Season column - match by ID or label containing "season"
+            if (colId.toLowerCase() === 'season') {
+              return c.id.toLowerCase().includes('season') || 
+                     c.label.toLowerCase().includes('season') ||
+                     c.id.toLowerCase() === 'season';
+            }
+            
+            const cId = c.id.toLowerCase().replace(/_/g, '').replace(/%/g, '');
+            const searchId = colId.toLowerCase().replace(/_/g, '').replace(/%/g, '');
+            return c.id.toLowerCase() === colId.toLowerCase() || 
+                   cId === searchId ||
+                   (colId === 'Team_FG%' && (c.id.includes('FG') || c.id.includes('fg'))) ||
+                   (colId === 'Team_3P%' && (c.id.includes('3P') || c.id.includes('3p'))) ||
+                   (colId === 'Team_FT%' && (c.id.includes('FT') || c.id.includes('ft')));
+          });
+          if (found && !orderedColumns.includes(found.id)) {
+            orderedColumns.push(found.id);
+          }
+        }
+        
+        // Ensure Season column is included even if not found by exact match
+        if (!orderedColumns.some(colId => {
+          const col = finalCols.find(c => c.id === colId);
+          return col && (col.id.toLowerCase().includes('season') || col.label.toLowerCase().includes('season'));
+        })) {
+          const seasonCol = finalCols.find(c => 
+            c.id.toLowerCase().includes('season') || 
+            c.label.toLowerCase().includes('season')
+          );
+          if (seasonCol) {
+            // Insert Season after Conference
+            const confIndex = orderedColumns.findIndex(id => {
+              const col = finalCols.find(c => c.id === id);
+              return col && col.id.toLowerCase().includes('conference');
+            });
+            if (confIndex >= 0) {
+              orderedColumns.splice(confIndex + 1, 0, seasonCol.id);
+            } else {
+              orderedColumns.push(seasonCol.id);
+            }
+          }
+        }
+        
+        // Set default visible columns and order
+        if (visibleColumns.size === 0) {
+          setVisibleColumns(new Set(orderedColumns));
+        }
+        if (columnOrder.length === 0) {
+          setColumnOrder(orderedColumns);
+        }
+      } else if (mode === 'transfers') {
         // For transfers, only show specific columns in this exact order: Season, Transfer_Rank, Name, Team, New_Team, HS_Ranking
         const transferColumnOrder = ['Season', 'Transfer_Rank', 'Name', 'Team', 'New_Team', 'HS_Ranking'];
         
@@ -185,7 +352,7 @@ export function DataExplorer({ mode }: DataExplorerProps) {
         for (const colId of transferColumnOrder) {
           const found = finalCols.find(c => 
             c.id.toLowerCase() === colId.toLowerCase() || 
-            (colId === 'Transfer_Rank' && c.label === 'Transfer Rank')
+            (colId === 'Transfer_Rank' && c.label === 'TransferRank')
           );
           if (found && !orderedColumns.includes(found.id)) {
             orderedColumns.push(found.id);
@@ -345,8 +512,8 @@ export function DataExplorer({ mode }: DataExplorerProps) {
   }
 
   return (
-    <div className="min-h-screen bg-cream">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-cream overflow-x-hidden">
+      <div className="container mx-auto px-4 py-8 max-w-full overflow-x-hidden">
         {/* Header */}
         <div className="mb-4 sm:mb-6">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-text-main mb-2">{MODE_LABELS[mode]}</h1>
@@ -423,7 +590,7 @@ export function DataExplorer({ mode }: DataExplorerProps) {
         </div>
 
         {/* Filters and Table */}
-        <div className="grid grid-cols-1 lg:grid-cols-[280px,1fr] xl:grid-cols-[320px,1fr] gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[336px,1fr] gap-4 lg:gap-4">
           <div className="order-2 lg:order-1">
             <FiltersPanel
               columns={columns}
@@ -504,7 +671,7 @@ export function DataExplorer({ mode }: DataExplorerProps) {
               }}
             />
           </div>
-          <div className="order-1 lg:order-2">
+          <div className="order-1 lg:order-2 min-w-0 overflow-hidden">
             <DataTable
               data={filteredData}
               columns={columns}
