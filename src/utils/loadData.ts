@@ -44,33 +44,59 @@ export async function loadAllDatasets(): Promise<Datasets> {
       transfers: [],
     };
 
-    // Try to load each sheet
-    for (const [datasetName, sheetName] of Object.entries(SHEET_NAMES)) {
-      const sheet = workbook.Sheets[sheetName];
-      if (sheet) {
-        const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-        datasets[datasetName as DatasetName] = json as Row[];
-        console.log(`Loaded sheet "${sheetName}" with ${json.length} rows`);
-      } else {
-        // If exact name doesn't match, try to find a similar sheet
-        const sheetNames = workbook.SheetNames;
-        const foundSheet = sheetNames.find(name => 
-          name.toLowerCase().includes(sheetName.toLowerCase()) ||
-          sheetName.toLowerCase().includes(name.toLowerCase())
+    // Define keywords to match sheets for each dataset type
+    const sheetKeywords: Record<DatasetName, string[]> = {
+      teams: ['team', 'teams'],
+      players: ['player', 'players'],
+      transfers: ['transfer', 'transfers'],
+    };
+
+    // For each dataset type, find and merge ALL matching sheets
+    for (const datasetName of ['teams', 'players', 'transfers'] as DatasetName[]) {
+      const keywords = sheetKeywords[datasetName];
+      const matchingSheets: string[] = [];
+
+      // Find all sheets that match the keywords for this dataset type
+      for (const sheetName of workbook.SheetNames) {
+        const lowerSheetName = sheetName.toLowerCase();
+        const matches = keywords.some(keyword => lowerSheetName.includes(keyword));
+        
+        // For transfers, be more strict to avoid matching player sheets
+        if (datasetName === 'transfers') {
+          // Transfer sheets should contain "transfer" but NOT "player"
+          if (matches && !lowerSheetName.includes('player')) {
+            matchingSheets.push(sheetName);
+          }
+        } else if (matches) {
+          matchingSheets.push(sheetName);
+        }
+      }
+
+      // If no matches found, try exact name match
+      if (matchingSheets.length === 0) {
+        const exactMatch = workbook.SheetNames.find(name => 
+          name.toLowerCase() === SHEET_NAMES[datasetName].toLowerCase()
         );
-        if (foundSheet) {
-          const json = XLSX.utils.sheet_to_json(workbook.Sheets[foundSheet], { defval: '' });
-          datasets[datasetName as DatasetName] = json as Row[];
-          console.log(`Loaded sheet "${foundSheet}" (matched "${sheetName}") with ${json.length} rows`);
-        } else {
-          console.warn(`Sheet "${sheetName}" not found. Available sheets:`, sheetNames);
-          // If no sheets match, try to use the first sheet(s) as fallback
-          if (sheetNames.length > 0) {
-            console.warn(`Using first available sheet "${sheetNames[0]}" as fallback for ${datasetName}`);
-            const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetNames[0]], { defval: '' });
-            datasets[datasetName as DatasetName] = json as Row[];
+        if (exactMatch) {
+          matchingSheets.push(exactMatch);
+        }
+      }
+
+      // Merge all matching sheets
+      if (matchingSheets.length > 0) {
+        const allRows: Row[] = [];
+        for (const sheetName of matchingSheets) {
+          const sheet = workbook.Sheets[sheetName];
+          if (sheet) {
+            const json = XLSX.utils.sheet_to_json(sheet, { defval: '' }) as Row[];
+            allRows.push(...json);
+            console.log(`Loaded sheet "${sheetName}" with ${json.length} rows for ${datasetName}`);
           }
         }
+        datasets[datasetName] = allRows;
+        console.log(`Total ${datasetName} rows after merging: ${allRows.length}`);
+      } else {
+        console.warn(`No sheets found for ${datasetName}. Available sheets:`, workbook.SheetNames);
       }
     }
 
@@ -78,7 +104,7 @@ export async function loadAllDatasets(): Promise<Datasets> {
     const totalRows = datasets.teams.length + datasets.players.length + datasets.transfers.length;
     if (totalRows === 0) {
       console.error('No data loaded from any sheet. Available sheets:', workbook.SheetNames);
-      throw new Error(`No data found in Excel file. Available sheets: ${workbook.SheetNames.join(', ')}. Expected sheets: Teams, Players, Transfers`);
+      throw new Error(`No data found in Excel file. Available sheets: ${workbook.SheetNames.join(', ')}. Expected sheets containing: Teams, Players, Transfers`);
     }
 
     cachedDatasets = datasets;

@@ -11,11 +11,10 @@ export type Filters = Record<string, Filter | undefined>;
 export function applyFilters(
   data: any[],
   filters: Filters,
-  searchQuery: string,
+  searchTags: string[],
   columns: ColumnConfig[]
 ): any[] {
   const searchableCols = columns.filter(c => c.searchable);
-  const q = searchQuery.toLowerCase().trim();
 
   return data.filter(row => {
     // Apply column-specific filters
@@ -52,13 +51,19 @@ export function applyFilters(
       }
     }
 
-    // Apply global search query (across searchable columns)
-    if (q) {
-      const match = searchableCols.some(col => {
-        const v = String(row[col.id] ?? '').toLowerCase();
-        return v.includes(q);
-      });
-      if (!match) return false;
+    // Apply global search tags (across searchable columns)
+    // A row must match ALL search tags (AND logic)
+    if (searchTags.length > 0) {
+      for (const tag of searchTags) {
+        const q = tag.toLowerCase().trim();
+        if (q) {
+          const match = searchableCols.some(col => {
+            const v = String(row[col.id] ?? '').toLowerCase();
+            return v.includes(q);
+          });
+          if (!match) return false;
+        }
+      }
     }
 
     return true;

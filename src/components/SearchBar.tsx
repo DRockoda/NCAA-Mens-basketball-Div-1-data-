@@ -2,14 +2,14 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import type { ColumnConfig } from '../config/columns';
 
 interface SearchBarProps {
-  value: string;
-  onChange: (value: string) => void;
+  searchTags: string[];
+  onSearchTagsChange: (tags: string[]) => void;
   data: any[];
   columns: ColumnConfig[];
-  onSelectSuggestion?: (value: string) => void;
 }
 
-export function SearchBar({ value, onChange, data, columns, onSelectSuggestion }: SearchBarProps) {
+export function SearchBar({ searchTags, onSearchTagsChange, data, columns }: SearchBarProps) {
+  const [inputValue, setInputValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -18,7 +18,7 @@ export function SearchBar({ value, onChange, data, columns, onSelectSuggestion }
   const searchableColumns = columns.filter(c => c.searchable);
 
   const suggestions = useMemo(() => {
-    const q = value.toLowerCase().trim();
+    const q = inputValue.toLowerCase().trim();
     if (!q || q.length < 2) return [];
 
     const maxSuggestions = 10;
@@ -36,7 +36,7 @@ export function SearchBar({ value, onChange, data, columns, onSelectSuggestion }
     }
 
     return Array.from(items).slice(0, maxSuggestions);
-  }, [value, data, searchableColumns]);
+  }, [inputValue, data, searchableColumns]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -54,51 +54,68 @@ export function SearchBar({ value, onChange, data, columns, onSelectSuggestion }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const addTag = (tag: string) => {
+    const trimmedTag = tag.trim();
+    if (trimmedTag && !searchTags.includes(trimmedTag)) {
+      onSearchTagsChange([...searchTags, trimmedTag]);
+      setInputValue('');
+      setShowSuggestions(false);
+      setSelectedIndex(-1);
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    onSearchTagsChange(searchTags.filter(tag => tag !== tagToRemove));
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'ArrowDown') {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (inputValue.trim()) {
+        addTag(inputValue);
+      } else if (selectedIndex >= 0 && suggestions[selectedIndex]) {
+        addTag(suggestions[selectedIndex]);
+      }
+    } else if (e.key === 'ArrowDown') {
       e.preventDefault();
       setSelectedIndex(prev => Math.min(prev + 1, suggestions.length - 1));
       setShowSuggestions(true);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setSelectedIndex(prev => Math.max(prev - 1, -1));
-    } else if (e.key === 'Enter' && selectedIndex >= 0 && suggestions[selectedIndex]) {
-      e.preventDefault();
-      const selected = suggestions[selectedIndex];
-      onChange(selected);
-      onSelectSuggestion?.(selected);
-      setShowSuggestions(false);
-      setSelectedIndex(-1);
     } else if (e.key === 'Escape') {
       setShowSuggestions(false);
       setSelectedIndex(-1);
+    } else if (e.key === 'Backspace' && inputValue === '' && searchTags.length > 0) {
+      // Remove last tag on backspace when input is empty
+      removeTag(searchTags[searchTags.length - 1]);
     }
   };
 
   const handleSuggestionClick = (suggestion: string) => {
-    onChange(suggestion);
-    onSelectSuggestion?.(suggestion);
-    setShowSuggestions(false);
-    setSelectedIndex(-1);
-    inputRef.current?.blur();
+    addTag(suggestion);
+    inputRef.current?.focus();
   };
 
   return (
     <div className="relative w-full">
+      {/* Search Input */}
       <input
         ref={inputRef}
         type="text"
-        value={value}
+        value={inputValue}
         onChange={(e) => {
-          onChange(e.target.value);
+          setInputValue(e.target.value);
           setShowSuggestions(true);
           setSelectedIndex(-1);
         }}
         onFocus={() => setShowSuggestions(true)}
         onKeyDown={handleKeyDown}
-        placeholder="Search..."
+        placeholder={searchTags.length > 0 ? "Add another search term..." : "Search..."}
         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
       />
+      
+      {/* Suggestions Dropdown */}
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
@@ -118,7 +135,40 @@ export function SearchBar({ value, onChange, data, columns, onSelectSuggestion }
           ))}
         </div>
       )}
+      
+      {/* Search Tags - Below the input */}
+      {searchTags.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-2">
+          {searchTags.map((tag, index) => (
+            <span
+              key={index}
+              className="inline-flex items-center gap-1 px-3 py-1 bg-primary text-white text-sm rounded-full"
+            >
+              <span>{tag}</span>
+              <button
+                type="button"
+                onClick={() => removeTag(tag)}
+                className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                aria-label={`Remove ${tag}`}
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
-
