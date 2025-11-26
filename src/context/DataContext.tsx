@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { loadAllDatasets, type Datasets, type DatasetName } from '../utils/loadData';
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import { loadAllDatasets, type Datasets } from '../utils/loadData';
 
 interface DataContextType {
   datasets: Datasets | null;

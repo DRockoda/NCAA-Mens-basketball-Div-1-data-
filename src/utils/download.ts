@@ -92,7 +92,6 @@ export function downloadXLSX(rows: any[], fileName: string, visibleColumns?: str
   
   // Update headers to use labels instead of column IDs
   if (worksheet['!ref']) {
-    const range = XLSX.utils.decode_range(worksheet['!ref']);
     headerLabels.forEach((label, index) => {
       const cellAddress = XLSX.utils.encode_cell({ r: 0, c: index });
       if (worksheet[cellAddress]) {

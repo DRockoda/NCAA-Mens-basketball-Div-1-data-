@@ -38,17 +38,24 @@ export function DataExplorer({ mode }: DataExplorerProps) {
   const downloadDropdownRef = useRef<HTMLDivElement>(null);
 
   const rawData = datasets ? datasets[mode] : [];
+
+  // Reset state whenever mode changes to prevent column/filter bleed-over between explorers
+  useEffect(() => {
+    setSearchTags([]);
+    setFilters({});
+    setColumns([]);
+    setVisibleColumns(new Set());
+    setColumnOrder([]);
+    setCurrentPage(1);
+    setPageSize(50);
+    setShowDownloadDropdown(false);
+  }, [mode]);
   
   // Infer columns from data if needed
   useEffect(() => {
     if (rawData.length > 0 && columns.length === 0) {
       const inferred = inferColumnsFromData(rawData, mode);
       const defaultCols = getColumnsForMode(mode);
-      
-      // Create a map of default columns by ID (case-insensitive for Season)
-      const defaultColsMap = new Map(
-        defaultCols.map(col => [col.id.toLowerCase(), col])
-      );
       
       // Merge inferred with defaults, preferring defaults when available
       // Also ensure Season column is included even if not in inferred
