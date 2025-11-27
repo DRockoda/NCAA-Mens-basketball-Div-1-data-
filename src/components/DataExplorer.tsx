@@ -38,7 +38,7 @@ export function DataExplorer({ mode }: DataExplorerProps) {
   const downloadDropdownRef = useRef<HTMLDivElement>(null);
 
   const rawData = datasets ? datasets[mode] : [];
-
+  
   // Reset state whenever mode changes to prevent column/filter bleed-over between explorers
   useEffect(() => {
     setSearchTags([]);

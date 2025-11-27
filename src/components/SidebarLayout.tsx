@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { label: 'Player Data', path: '/players', icon: '/Icons/Player.svg' },
   { label: 'Team Data', path: '/teams', icon: '/Icons/Team.svg' },
   { label: 'Transfer Data', path: '/transfers', icon: '/Icons/Transfer.svg' },
+  { label: 'Compare', path: '/compare', icon: '/Icons/Compare.svg' },
 ];
 
 export function SidebarLayout() {
@@ -56,7 +57,7 @@ export function SidebarLayout() {
                     style={{
                       filter: isActive
                         ? 'brightness(0) invert(1)'
-                        : 'invert(12%) sepia(94%) saturate(5481%) hue-rotate(354deg) brightness(92%) contrast(101%)',
+                        : 'invert(13%) sepia(96%) saturate(5450%) hue-rotate(351deg) brightness(91%) contrast(108%)',
                     }}
                   />
                   <span>{item.label}</span>
@@ -80,7 +81,7 @@ export function SidebarLayout() {
                   style={{
                     filter: isActive
                       ? 'brightness(0) invert(1)'
-                      : 'invert(12%) sepia(94%) saturate(5481%) hue-rotate(354deg) brightness(92%) contrast(101%)',
+                      : 'invert(13%) sepia(96%) saturate(5450%) hue-rotate(351deg) brightness(91%) contrast(108%)',
                   }}
                 />
                 <span>Glossary</span>

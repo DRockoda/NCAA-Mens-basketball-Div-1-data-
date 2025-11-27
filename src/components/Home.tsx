@@ -386,16 +386,16 @@ export function Home() {
 
         {/* Leaderboard sections */}
         {activeTab === 'players' ? (
-          <section className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {PLAYER_SECTIONS.map((config) =>
                 viewMode === 'table' ? (
-                  <PlayerStatBlock
-                    key={config.id}
-                    title={config.title}
-                    metricLabel={config.metricLabel}
+              <PlayerStatBlock
+                key={config.id}
+                title={config.title}
+                metricLabel={config.metricLabel}
                     rows={playerSections[config.id]?.rows || []}
-                  />
+              />
                 ) : (
                   <PlayerVisualBlock
                     key={config.id}
@@ -427,48 +427,48 @@ export function Home() {
                   />
                 ),
               )}
-            </div>
-          </section>
+          </div>
+        </section>
         )}
 
         {/* Bottom summary table (teams view only) */}
         {activeTab === 'teams' && (
-          <section className="bg-white rounded-2xl shadow-md border border-cream/70">
-            <div className="px-6 py-5 border-b border-cream/60">
-              <h2 className="text-xl font-semibold text-text-main">Best Team by Season</h2>
-              <p className="text-sm text-gray-600">
-                Top-performing team each season based on {TEAM_METRIC.label}.
-              </p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-cream/50">
+        <section className="bg-white rounded-2xl shadow-md border border-cream/70">
+          <div className="px-6 py-5 border-b border-cream/60">
+            <h2 className="text-xl font-semibold text-text-main">Best Team by Season</h2>
+            <p className="text-sm text-gray-600">
+              Top-performing team each season based on {TEAM_METRIC.label}.
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-cream/50">
+                <tr>
+                  <Th>Season</Th>
+                  <Th>Team</Th>
+                  <Th>{TEAM_METRIC.label}</Th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-100">
+                {bestTeamsBySeason.length === 0 ? (
                   <tr>
-                    <Th>Season</Th>
-                    <Th>Team</Th>
-                    <Th>{TEAM_METRIC.label}</Th>
+                    <td colSpan={3} className="px-6 py-6 text-center text-gray-500">
+                      No team data available.
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
-                  {bestTeamsBySeason.length === 0 ? (
-                    <tr>
-                      <td colSpan={3} className="px-6 py-6 text-center text-gray-500">
-                        No team data available.
-                      </td>
+                ) : (
+                  bestTeamsBySeason.map((row) => (
+                    <tr key={`${row.season}-${row.team}`} className="hover:bg-cream/20 transition-colors">
+                      <Td>{row.season}</Td>
+                      <Td>{row.team}</Td>
+                      <Td>{TEAM_METRIC.format(row.value)}</Td>
                     </tr>
-                  ) : (
-                    bestTeamsBySeason.map((row) => (
-                      <tr key={`${row.season}-${row.team}`} className="hover:bg-cream/20 transition-colors">
-                        <Td>{row.season}</Td>
-                        <Td>{row.team}</Td>
-                        <Td>{TEAM_METRIC.format(row.value)}</Td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
         )}
       </div>
     </div>

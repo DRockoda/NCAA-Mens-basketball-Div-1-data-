@@ -4,6 +4,7 @@ import { Home } from './components/Home';
 import { DataExplorer } from './components/DataExplorer';
 import { SidebarLayout } from './components/SidebarLayout';
 import { Glossary } from './components/Glossary';
+import { ComparePage } from './components/ComparePage';
 
 function App() {
   return (
@@ -16,6 +17,9 @@ function App() {
             <Route path="/teams" element={<DataExplorer mode="teams" />} />
             <Route path="/players" element={<DataExplorer mode="players" />} />
             <Route path="/transfers" element={<DataExplorer mode="transfers" />} />
+            <Route path="/compare" element={<Navigate to="/compare/players" replace />} />
+            <Route path="/compare/players" element={<ComparePage mode="players" />} />
+            <Route path="/compare/teams" element={<ComparePage mode="teams" />} />
             <Route path="/glossary" element={<Glossary />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
