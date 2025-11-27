@@ -691,6 +691,7 @@ export function DataExplorer({ mode }: DataExplorerProps) {
                 setPageSize(size);
                 setCurrentPage(1);
               }}
+              linkTeams={mode === 'teams'}
             />
           </div>
         </div>

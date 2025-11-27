@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { ColumnConfig } from '../config/columns';
+import { teamSlugFromName } from '../utils/teamUtils';
 
 interface DataTableProps {
   data: any[];
@@ -10,6 +12,7 @@ interface DataTableProps {
   pageSize: number;
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
+  linkTeams?: boolean;
 }
 
 type SortDirection = 'asc' | 'desc' | null;
@@ -24,6 +27,7 @@ export function DataTable({
   pageSize,
   onPageChange,
   onPageSizeChange,
+  linkTeams = false,
 }: DataTableProps) {
   // Filter and order columns based on columnOrder
   const visibleCols = columnOrder
@@ -171,9 +175,24 @@ export function DataTable({
                       }
                     }
                     
+                    const isTeamColumn =
+                      linkTeams &&
+                      isTeamNameColumn(col.id, col.label) &&
+                      typeof cellValue === 'string' &&
+                      cellValue.trim().length > 0;
+
                     return (
                       <td key={col.id} className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-700 whitespace-nowrap">
-                        {formatValue(cellValue, col.type)}
+                        {isTeamColumn ? (
+                          <Link
+                            to={`/teams/${teamSlugFromName(cellValue as string)}`}
+                            className="text-primary font-semibold hover:underline"
+                          >
+                            {cellValue}
+                          </Link>
+                        ) : (
+                          formatValue(cellValue, col.type)
+                        )}
                       </td>
                     );
                   })}
@@ -230,6 +249,16 @@ export function DataTable({
         )}
       </div>
     </div>
+  );
+}
+
+function isTeamNameColumn(id: string, label?: string): boolean {
+  const normalizedId = id.replace(/\s+/g, '_').toLowerCase();
+  const normalizedLabel = label?.replace(/\s+/g, '_').toLowerCase();
+  const candidateIds = ['team_name', 'team', 'teamname', 'school'];
+  return (
+    candidateIds.includes(normalizedId) ||
+    (normalizedLabel ? candidateIds.includes(normalizedLabel) : false)
   );
 }
 

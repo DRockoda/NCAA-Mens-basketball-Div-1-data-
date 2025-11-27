@@ -15,6 +15,7 @@ import {
   LabelList,
 } from 'recharts';
 import { useData } from '../context/DataContext';
+import { TeamLink } from './TeamLink';
 
 type CompareMode = 'players' | 'teams';
 
@@ -591,7 +592,11 @@ export function ComparePage({ mode }: ComparePageProps) {
                       </th>
                       {derivedEntities.map((entity) => (
                         <th key={entity.entity.id} className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                          {entity.entity.name}
+                          {mode === 'teams' ? (
+                            <TeamLink name={entity.entity.name} className="text-xs font-semibold uppercase tracking-wide" />
+                          ) : (
+                            entity.entity.name
+                          )}
                         </th>
                       ))}
                     </tr>

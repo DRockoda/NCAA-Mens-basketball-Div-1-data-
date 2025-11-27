@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import type { TooltipProps } from 'recharts';
 import { useData } from '../context/DataContext';
+import { TeamLink } from './TeamLink';
 
 type PlayerSectionConfig = {
   id: string;
@@ -460,7 +461,9 @@ export function Home() {
                   bestTeamsBySeason.map((row) => (
                     <tr key={`${row.season}-${row.team}`} className="hover:bg-cream/20 transition-colors">
                       <Td>{row.season}</Td>
-                      <Td>{row.team}</Td>
+                      <Td>
+                        <TeamLink name={row.team} />
+                      </Td>
                       <Td>{TEAM_METRIC.format(row.value)}</Td>
                     </tr>
                   ))
@@ -522,7 +525,9 @@ function PlayerStatBlock({
                 <tr key={`${title}-${row.rank}-${row.name}`} className="hover:bg-cream/20 transition-colors">
                   <Td>{row.rank}</Td>
                   <Td>{row.name}</Td>
-                  <Td>{row.team}</Td>
+                  <Td>
+                    <TeamLink name={row.team} />
+                  </Td>
                   <Td>{row.displayValue}</Td>
                   <Td>
                     <SeasonChip value={row.season} />
@@ -573,7 +578,9 @@ function TeamStatBlock({
               rows.map((row) => (
                 <tr key={`${title}-${row.rank}-${row.team}`} className="hover:bg-cream/20 transition-colors">
                   <Td>{row.rank}</Td>
-                  <Td>{row.team}</Td>
+                  <Td>
+                    <TeamLink name={row.team} />
+                  </Td>
                   <Td>{row.displayValue}</Td>
                   <Td>
                     <SeasonChip value={row.season} />

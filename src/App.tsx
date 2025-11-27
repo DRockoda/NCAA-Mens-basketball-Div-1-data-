@@ -5,6 +5,7 @@ import { DataExplorer } from './components/DataExplorer';
 import { SidebarLayout } from './components/SidebarLayout';
 import { Glossary } from './components/Glossary';
 import { ComparePage } from './components/ComparePage';
+import { TeamPage } from './components/TeamPage';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Home />} />
             <Route path="/teams" element={<DataExplorer mode="teams" />} />
+            <Route path="/teams/:teamId" element={<TeamPage />} />
             <Route path="/players" element={<DataExplorer mode="players" />} />
             <Route path="/transfers" element={<DataExplorer mode="transfers" />} />
             <Route path="/compare" element={<Navigate to="/compare/players" replace />} />
