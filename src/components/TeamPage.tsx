@@ -14,6 +14,14 @@ import { getTeamNameFromRow, matchesTeam, normalizeTeamName } from '../utils/tea
 import { downloadCSV, downloadXLSX } from '../utils/download';
 import type { ColumnConfig } from '../config/columns';
 
+function getDefaultSeason(seasons: string[]): string {
+  if (seasons.length === 0) return '';
+  if (seasons.includes('2025')) return '2025';
+  return seasons[0]; // Latest season (already sorted descending)
+}
+import { PlayerLink } from './PlayerLink';
+import { playerSlugFromRow } from '../utils/playerUtils';
+
 const TEAM_STATS_COLUMNS: Array<{
   key: string;
   label: string;
@@ -88,7 +96,7 @@ export function TeamPage() {
   const { teamId = '' } = useParams();
   const navigate = useNavigate();
   const { datasets, loading, error } = useData();
-  const [selectedSeason, setSelectedSeason] = useState('ALL');
+  const [selectedSeason, setSelectedSeason] = useState<string>('');
   const [selectedChartStat, setSelectedChartStat] = useState<string>(TEAM_STAT_OPTIONS[0].value);
 
   const teams = datasets?.teams ?? [];
@@ -109,8 +117,8 @@ export function TeamPage() {
   const teamRowsDesc = useMemo(() => [...teamRowsAsc].reverse(), [teamRowsAsc]);
 
   useEffect(() => {
-    setSelectedSeason('ALL');
     setSelectedChartStat(TEAM_STAT_OPTIONS[0].value);
+    // Don't reset selectedSeason here - let the other effect handle default
   }, [teamId]);
 
   const latestRow = teamRowsDesc[0];
@@ -130,6 +138,16 @@ export function TeamPage() {
     );
     return unique.sort((a, b) => seasonNumber(b) - seasonNumber(a));
   }, [teamRowsAsc]);
+
+  // Initialize selectedSeason with default season
+  useEffect(() => {
+    if (seasons.length > 0) {
+      const defaultSeason = getDefaultSeason(seasons);
+      if (selectedSeason === 'ALL' || !seasons.includes(selectedSeason)) {
+        setSelectedSeason(defaultSeason);
+      }
+    }
+  }, [seasons, teamId]); // Only set default when team changes or seasons load
 
   const bestSeasonCards = useMemo(() => {
     return BEST_SEASON_CARDS.map(({ key, title, formatter }) => {
@@ -167,7 +185,7 @@ export function TeamPage() {
   };
 
   const rosterRows = useMemo(() => {
-    if (selectedSeason === 'ALL') return [];
+    if (!selectedSeason || selectedSeason === 'ALL') return [];
     if (!displayName) return [];
     const normalizedTeam = normalizeTeamName(displayName).toLowerCase();
     return players
@@ -210,8 +228,59 @@ export function TeamPage() {
 
   if (!latestRow) {
     return (
-      <div className="min-h-screen bg-cream flex items-center justify-center text-gray-600">
-        Team not found.
+      <div className="min-h-screen bg-cream">
+        <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary-dark transition-colors"
+          >
+            <span className="text-lg">←</span>
+            Back
+          </button>
+          <div className="bg-white rounded-2xl shadow border border-cream/70 p-8 text-center">
+            <h1 className="text-2xl font-bold text-text-main mb-2">Team not found</h1>
+            <p className="text-gray-600">No data is currently available for this team.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if there's any meaningful data (not just empty rows)
+  const hasData = teamRowsAsc.length > 0 && teamRowsAsc.some(row => {
+    // Check if row has at least one meaningful stat
+    const stats = ['Team_GP', 'Team_PTS', 'Team_Win%', 'Team_Reb'];
+    return stats.some(stat => {
+      const value = row[stat];
+      return value !== null && value !== undefined && value !== '' && Number(value) !== 0;
+    });
+  });
+
+  if (!hasData) {
+    return (
+      <div className="min-h-screen bg-cream">
+        <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary-dark transition-colors"
+          >
+            <span className="text-lg">←</span>
+            Back
+          </button>
+          <header className="bg-white rounded-2xl shadow border border-cream/70 p-6">
+            <div className="flex flex-col gap-3">
+              <div>
+                <p className="text-sm font-semibold text-primary uppercase tracking-wide">Team Profile</p>
+                <h1 className="text-3xl font-bold text-text-main">{displayName}</h1>
+              </div>
+            </div>
+          </header>
+          <div className="bg-white rounded-2xl shadow border border-cream/70 p-8 text-center">
+            <p className="text-gray-600">No data is currently available for this team.</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -373,9 +442,7 @@ export function TeamPage() {
             <div>
               <h2 className="text-xl font-semibold text-text-main">Roster</h2>
               <p className="text-sm text-gray-500">
-                {selectedSeason === 'ALL'
-                  ? 'Select a season to view the roster.'
-                  : `Players for the ${selectedSeason} season.`}
+                {selectedSeason ? `Players for the ${selectedSeason} season.` : 'Select a season to view the roster.'}
               </p>
             </div>
             <div className="w-full sm:w-60">
@@ -385,16 +452,19 @@ export function TeamPage() {
                 onChange={(e) => setSelectedSeason(e.target.value)}
                 className="w-full px-4 pr-10 py-2 rounded-xl border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
-                <option value="ALL">All seasons</option>
-                {seasons.map((season) => (
-                  <option key={season} value={season}>
-                    {season}
-                  </option>
-                ))}
+                {seasons.length === 0 ? (
+                  <option value="">No seasons available</option>
+                ) : (
+                  seasons.map((season) => (
+                    <option key={season} value={season}>
+                      {season}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
           </div>
-          {selectedSeason === 'ALL' ? (
+          {!selectedSeason || selectedSeason === 'ALL' ? (
             <div className="rounded-xl border border-dashed border-gray-300 p-6 text-sm text-gray-500">
               Select a specific season to see roster details.
             </div>
@@ -415,15 +485,21 @@ export function TeamPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {rosterRows.map((player) => (
-                    <tr key={`${player['Name']}-${player['Season']}`}>
-                      <td className="px-4 py-3 font-semibold text-text-main">{player['Name']}</td>
+                  {rosterRows.map((player) => {
+                    const slug = playerSlugFromRow(player);
+                    const key = slug || `${player['Name']}-${player['Season']}`;
+                    return (
+                      <tr key={key}>
+                        <td className="px-4 py-3 font-semibold text-text-main">
+                          <PlayerLink row={player} name={player['Name'] ?? '—'} slug={slug} />
+                        </td>
                       <td className="px-4 py-3">{player['Position'] ?? '—'}</td>
                       <td className="px-4 py-3">{player['Hometown'] ?? '—'}</td>
                       <td className="px-4 py-3">{player['Height'] ?? '—'}</td>
                       <td className="px-4 py-3">{player['Class'] ?? '—'}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

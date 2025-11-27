@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import {
   ResponsiveContainer,
@@ -11,7 +11,10 @@ import {
 } from 'recharts';
 import type { TooltipProps } from 'recharts';
 import { useData } from '../context/DataContext';
+import { useAppState } from '../context/AppStateContext';
 import { TeamLink } from './TeamLink';
+import { PlayerLink } from './PlayerLink';
+import { playerSlugFromRow } from '../utils/playerUtils';
 
 type PlayerSectionConfig = {
   id: string;
@@ -106,6 +109,7 @@ const TEAM_SECTIONS: TeamSectionConfig[] = [
 type PlayerLeaderboardRow = {
   rank: number;
   name: string;
+  slug: string;
   team: string;
   season: string;
   numericValue: number;
@@ -130,9 +134,15 @@ function normalizeSeason(value: unknown) {
   return String(value);
 }
 
+function getDefaultSeason(seasonList: string[]): string {
+  if (seasonList.length === 0) return ALL_SEASONS_OPTION;
+  if (seasonList.includes('2025')) return '2025';
+  return seasonList[0]; // Latest season (already sorted descending)
+}
+
 export function Home() {
   const { datasets, loading, error } = useData();
-  const [selectedSeason, setSelectedSeason] = useState<string>(ALL_SEASONS_OPTION);
+  const { state, updateDashboardSeason } = useAppState();
   const [activeTab, setActiveTab] = useState<'players' | 'teams'>('players');
   const [viewMode, setViewMode] = useState<'table' | 'visuals'>('table');
 
@@ -149,6 +159,19 @@ export function Home() {
     });
     return Array.from(seasons).sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
   }, [datasets]);
+
+  const defaultSeason = useMemo(() => getDefaultSeason(seasonList), [seasonList]);
+  const [selectedSeason, setSelectedSeason] = useState<string>(
+    state.dashboardSeason ?? defaultSeason
+  );
+
+  useEffect(() => {
+    if (!state.dashboardSeason && seasonList.length > 0) {
+      const initialSeason = getDefaultSeason(seasonList);
+      setSelectedSeason(initialSeason);
+      updateDashboardSeason(initialSeason);
+    }
+  }, [seasonList, state.dashboardSeason, updateDashboardSeason]);
 
   const filteredData = useMemo(() => {
     if (!datasets) return null;
@@ -201,6 +224,7 @@ export function Home() {
         .map((entry, index) => ({
           rank: index + 1,
           name: entry.player['Name'] || entry.player['Player'] || 'Unknown',
+          slug: playerSlugFromRow(entry.player),
           team: entry.player['Team'] || entry.player['Current_Team'] || '—',
           season: normalizeSeason(entry.player['Season']),
           numericValue: entry.value,
@@ -324,7 +348,10 @@ export function Home() {
               id="season-filter"
               className="px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               value={selectedSeason}
-              onChange={(e) => setSelectedSeason(e.target.value)}
+              onChange={(e) => {
+                setSelectedSeason(e.target.value);
+                updateDashboardSeason(e.target.value);
+              }}
             >
               <option value={ALL_SEASONS_OPTION}>{ALL_SEASONS_OPTION}</option>
               {seasonList.map((season) => (
@@ -524,7 +551,9 @@ function PlayerStatBlock({
               rows.map((row) => (
                 <tr key={`${title}-${row.rank}-${row.name}`} className="hover:bg-cream/20 transition-colors">
                   <Td>{row.rank}</Td>
-                  <Td>{row.name}</Td>
+                  <Td>
+                    <PlayerLink name={row.name} slug={row.slug} />
+                  </Td>
                   <Td>
                     <TeamLink name={row.team} />
                   </Td>

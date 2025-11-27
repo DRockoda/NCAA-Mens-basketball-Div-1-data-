@@ -15,7 +15,10 @@ import {
   LabelList,
 } from 'recharts';
 import { useData } from '../context/DataContext';
+import { useAppState } from '../context/AppStateContext';
 import { TeamLink } from './TeamLink';
+import { PlayerLink } from './PlayerLink';
+import { getPlayerNameFromRow, playerSlugFromRow } from '../utils/playerUtils';
 
 type CompareMode = 'players' | 'teams';
 
@@ -65,18 +68,22 @@ const COLOR_PALETTE = ['#990000', '#C85179', '#F07900', '#4C6FFF', '#2D9CDB'];
 const CONFIG: Record<CompareMode, CompareConfig> = {
   players: {
     title: 'Compare Players',
-    subtitle: 'Search and select 2–5 players to compare.',
+    subtitle: 'Search and select 1–5 players to compare.',
     datasetKey: 'players',
     searchPlaceholder: 'Search players…',
-    getEntityId: (row) => row?.['Name']?.toString().trim(),
+    getEntityId: (row) => {
+      const slug = playerSlugFromRow(row);
+      return slug || getPlayerNameFromRow(row) || undefined;
+    },
     buildSuggestion: (row) => {
-      const id = row?.['Name']?.toString().trim();
-      if (!id) return null;
+      const id = playerSlugFromRow(row);
+      const name = getPlayerNameFromRow(row);
+      if (!id || !name) return null;
       const team = row?.['Team'] || row?.['Current_Team'] || '—';
       const season = row?.['Season'] || 'N/A';
       return {
         id,
-        name: id,
+        name,
         subtitle: `${team} · ${season}`,
       };
     },
@@ -126,7 +133,7 @@ const CONFIG: Record<CompareMode, CompareConfig> = {
   },
   teams: {
     title: 'Compare Teams',
-    subtitle: 'Search and select 2–5 teams to compare.',
+    subtitle: 'Search and select 1–5 teams to compare.',
     datasetKey: 'teams',
     searchPlaceholder: 'Search teams…',
     getEntityId: (row) => row?.['Team_Name']?.toString().trim(),
@@ -190,23 +197,32 @@ function average(values: number[]) {
 export function ComparePage({ mode }: ComparePageProps) {
   const navigate = useNavigate();
   const { datasets } = useData();
+  const { state, updateComparePlayersState, updateCompareTeamsState } = useAppState();
   const config = CONFIG[mode];
   const data = datasets ? datasets[config.datasetKey] : [];
   const transfers = datasets?.transfers ?? [];
 
+  const persistedState = mode === 'players' ? state.comparePlayersState : state.compareTeamsState;
+  const updateState = mode === 'players' ? updateComparePlayersState : updateCompareTeamsState;
+
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedEntities, setSelectedEntities] = useState<SelectedEntity[]>([]);
-  const [selectedStat, setSelectedStat] = useState(config.statOptions[0].value);
-  const [seasonView, setSeasonView] = useState('ALL');
+  const [selectedEntities, setSelectedEntities] = useState<SelectedEntity[]>(
+    persistedState?.selectedEntities ?? []
+  );
+  const [selectedStat, setSelectedStat] = useState(
+    persistedState?.selectedStat ?? config.statOptions[0].value
+  );
+  const [seasonView, setSeasonView] = useState(persistedState?.seasonView ?? 'ALL');
   const [error, setError] = useState<string | null>(null);
 
+  // Load persisted state on mount
   useEffect(() => {
-    setSelectedEntities([]);
-    setSelectedStat(CONFIG[mode].statOptions[0].value);
-    setSeasonView('ALL');
-    setError(null);
-    setSearchTerm('');
-  }, [mode]);
+    if (persistedState) {
+      setSelectedEntities(persistedState.selectedEntities);
+      setSelectedStat(persistedState.selectedStat || config.statOptions[0].value);
+      setSeasonView(persistedState.seasonView || 'ALL');
+    }
+  }, [mode]); // Only re-run when mode changes
 
   const availableSeasons = useMemo(() => {
     if (!data) return [];
@@ -304,7 +320,7 @@ export function ComparePage({ mode }: ComparePageProps) {
   }, [selectedEntities, data, config, statOptionMap, selectedStat, seasonView]);
 
   const chartData = useMemo(() => {
-    if (derivedEntities.length < 2) return [];
+    if (derivedEntities.length < 1) return [];
     const seasons = Array.from(
       new Set(
         derivedEntities.flatMap((item) => item.series.map((point) => point.season)),
@@ -338,7 +354,7 @@ export function ComparePage({ mode }: ComparePageProps) {
   }, [derivedEntities]);
 
   const highlightCards = useMemo(() => {
-    if (derivedEntities.length < 2) return [];
+    if (derivedEntities.length < 1) return [];
     const fixedHighlights =
       mode === 'players'
         ? [
@@ -384,7 +400,7 @@ export function ComparePage({ mode }: ComparePageProps) {
   }, [derivedEntities, mode, config.extraHighlightStats, statOptionMap]);
 
   const tableRows = useMemo(() => {
-    if (derivedEntities.length < 2) return [];
+    if (derivedEntities.length < 1) return [];
     return config.tableStats.map((stat) => {
       const values = derivedEntities.map((entity) => {
         const rawValue =
@@ -408,33 +424,36 @@ export function ComparePage({ mode }: ComparePageProps) {
     });
   }, [derivedEntities, config.tableStats]);
 
-  const canCompare = derivedEntities.length >= 2;
+  const canCompare = derivedEntities.length >= 1;
 
   const playerTransferEvents = useMemo(() => {
     if (mode !== 'players' || selectedEntities.length === 0) return [];
     const grouped = new Map<
       string,
-      Array<{ season: string; from: string; to: string }>
+      { events: Array<{ season: string; from: string; to: string }> }
     >();
     transfers.forEach((row) => {
-      const name = row?.['Name']?.toString().trim();
-      if (!name) return;
+      const slug = playerSlugFromRow(row);
+      const name = getPlayerNameFromRow(row);
+      if (!slug || !name) return;
       const fromTeam = row['Team'] || row['From_Team'] || 'Previous Team';
       const toTeam = row['New_Team'] || row['To_Team'] || 'Next Team';
       const season = row['Season'] ? row['Season'].toString() : 'N/A';
-      if (!grouped.has(name)) {
-        grouped.set(name, []);
+      if (!grouped.has(slug)) {
+        grouped.set(slug, { events: [] });
       }
-      grouped.get(name)!.push({
+      grouped.get(slug)!.events.push({
         season,
         from: fromTeam,
         to: toTeam,
       });
     });
-    grouped.forEach((events) => events.sort((a, b) => seasonNumber(a.season) - seasonNumber(b.season)));
+    grouped.forEach((entry) =>
+      entry.events.sort((a, b) => seasonNumber(a.season) - seasonNumber(b.season)),
+    );
     return selectedEntities.map((entity) => ({
       entity,
-      events: grouped.get(entity.id) ?? [],
+      events: grouped.get(entity.id)?.events ?? [],
     }));
   }, [mode, selectedEntities, transfers]);
 
@@ -447,13 +466,21 @@ export function ComparePage({ mode }: ComparePageProps) {
       setError('You can compare up to 5 entities.');
       return;
     }
-    setSelectedEntities((prev) => [...prev, suggestion]);
+    const newEntities = [...selectedEntities, suggestion];
+    setSelectedEntities(newEntities);
     setSearchTerm('');
     setError(null);
+    if (updateState) {
+      updateState({ selectedEntities: newEntities });
+    }
   };
 
   const handleRemoveEntity = (id: string) => {
-    setSelectedEntities((prev) => prev.filter((entity) => entity.id !== id));
+    const newEntities = selectedEntities.filter((entity) => entity.id !== id);
+    setSelectedEntities(newEntities);
+    if (updateState) {
+      updateState({ selectedEntities: newEntities });
+    }
   };
 
   const currentStatOption = statOptionMap.get(selectedStat) ?? config.statOptions[0];
@@ -493,7 +520,12 @@ export function ComparePage({ mode }: ComparePageProps) {
                 <select
                   aria-label="Season view"
                   value={seasonView}
-                  onChange={(e) => setSeasonView(e.target.value)}
+                  onChange={(e) => {
+                    setSeasonView(e.target.value);
+                    if (updateState) {
+                      updateState({ seasonView: e.target.value });
+                    }
+                  }}
                   className="px-4 pr-8 py-2 rounded-full border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="ALL">All Season AVG</option>
@@ -542,7 +574,7 @@ export function ComparePage({ mode }: ComparePageProps) {
 
         <section className="flex flex-wrap gap-2">
           {selectedEntities.length === 0 && (
-            <p className="text-sm text-gray-600">Select 2–5 entries to start comparing.</p>
+            <p className="text-sm text-gray-600">Select 1–5 entries to start comparing.</p>
           )}
           {selectedEntities.map((entity) => (
             <div
@@ -576,7 +608,7 @@ export function ComparePage({ mode }: ComparePageProps) {
 
         {!canCompare && (
           <div className="bg-white rounded-2xl border border-dashed border-gray-300 p-8 text-center text-gray-500">
-            Select at least two {mode === 'players' ? 'players' : 'teams'} to compare.
+            Select at least one {mode === 'players' ? 'player' : 'team'} to compare.
           </div>
         )}
 
@@ -595,7 +627,7 @@ export function ComparePage({ mode }: ComparePageProps) {
                           {mode === 'teams' ? (
                             <TeamLink name={entity.entity.name} className="text-xs font-semibold uppercase tracking-wide" />
                           ) : (
-                            entity.entity.name
+                            <PlayerLink name={entity.entity.name} slug={entity.entity.id} className="text-xs font-semibold uppercase tracking-wide" />
                           )}
                         </th>
                       ))}
@@ -637,7 +669,12 @@ export function ComparePage({ mode }: ComparePageProps) {
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Stat to compare</label>
                   <select
                     value={selectedStat}
-                    onChange={(e) => setSelectedStat(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedStat(e.target.value);
+                      if (updateState) {
+                        updateState({ selectedStat: e.target.value });
+                      }
+                    }}
                     className="w-full px-4 pr-10 py-2 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                   >
                     {config.statOptions.map((stat) => (

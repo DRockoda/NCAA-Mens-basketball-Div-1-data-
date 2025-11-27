@@ -90,10 +90,44 @@ export const transferColumns: ColumnConfig[] = [
   { id: 'HS_Ranking', label: 'HSRanking', type: 'categorical', filterable: true, searchable: false, defaultVisible: true },
 ];
 
+/**
+ * Filters out empty columns (_EMPTY, _EMPTY_1, etc.) and columns with empty names
+ * This is the definitive filter that should catch all _EMPTY variations
+ */
+export function filterEmptyColumns(columns: ColumnConfig[]): ColumnConfig[] {
+  return columns.filter(col => {
+    const id = col.id.trim();
+    const label = col.label.trim();
+    
+    // Filter out empty strings
+    if (id.length === 0 || label.length === 0) {
+      return false;
+    }
+    
+    // Filter out _EMPTY variations (case-insensitive, comprehensive check)
+    const upperId = id.toUpperCase();
+    const upperLabel = label.toUpperCase();
+    
+    // Check for various _EMPTY patterns
+    const isEmptyPattern = 
+      upperId.startsWith('_EMPTY') ||
+      upperId === 'EMPTY' ||
+      upperId.startsWith('EMPTY_') ||
+      upperId.includes('_EMPTY_') ||
+      upperId.endsWith('_EMPTY') ||
+      upperLabel.startsWith('_EMPTY') ||
+      upperLabel === 'EMPTY' ||
+      upperLabel.startsWith('EMPTY_') ||
+      upperLabel.includes('_EMPTY_') ||
+      upperLabel.endsWith('_EMPTY');
+    
+    return !isEmptyPattern;
+  });
+}
+
 export function getColumnsForMode(mode: 'teams' | 'players' | 'transfers'): ColumnConfig[] {
-  if (mode === 'teams') return teamColumns;
-  if (mode === 'players') return playerColumns;
-  return transferColumns;
+  const columns = mode === 'teams' ? teamColumns : mode === 'players' ? playerColumns : transferColumns;
+  return filterEmptyColumns(columns);
 }
 
 // Auto-generate columns from actual data if they don't match
@@ -110,6 +144,20 @@ export function inferColumnsFromData(data: any[], mode: 'teams' | 'players' | 't
   
   return keys
     .filter(key => {
+      // FIRST: Exclude empty columns and _EMPTY columns (case-insensitive) - this is the primary filter
+      const trimmedKey = key.trim();
+      if (trimmedKey.length === 0) {
+        return false;
+      }
+      // Check for _EMPTY pattern (case-insensitive, including variations like _EMPTY, _EMPTY_1, _EMPTY_2, EMPTY, EMPTY_1, etc.)
+      const upperKey = trimmedKey.toUpperCase();
+      if (upperKey.startsWith('_EMPTY') || 
+          upperKey === 'EMPTY' || 
+          upperKey.startsWith('EMPTY_') ||
+          upperKey.includes('_EMPTY_') ||
+          upperKey.endsWith('_EMPTY')) {
+        return false;
+      }
       // Exclude unwanted columns
       const lowerKey = key.toLowerCase().trim();
       return !excludedColumns.some(excluded => 
@@ -189,14 +237,31 @@ export function inferColumnsFromData(data: any[], mode: 'teams' | 'players' | 't
         };
       }
 
+      // Generate label from key, but ensure it's not empty
+      let generatedLabel = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim().replace(/\s+/g, '');
+      // If label is empty or just whitespace, use the key itself (but this should be filtered out earlier)
+      if (!generatedLabel || generatedLabel.trim().length === 0) {
+        generatedLabel = key;
+      }
+      
       return {
         id: key,
-        label: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim().replace(/\s+/g, ''),
+        label: generatedLabel,
         type,
         filterable: true,
         searchable: type === 'string' || type === 'categorical',
         defaultVisible: ['name', 'team', 'player', 'season', 'date'].some(term => key.toLowerCase().includes(term)),
       };
+    })
+    .filter(col => {
+      // Final filter to ensure no _EMPTY columns slip through (case-insensitive)
+      const id = col.id.trim();
+      const label = col.label.trim();
+      const isEmptyId = id.length === 0;
+      const isEmptyLabel = label.length === 0;
+      const isEmptyColumn = id.toUpperCase().startsWith('_EMPTY') || label.toUpperCase().startsWith('_EMPTY');
+      
+      return !isEmptyId && !isEmptyLabel && !isEmptyColumn;
     });
 }
 

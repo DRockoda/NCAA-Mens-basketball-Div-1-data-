@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ColumnConfig } from '../config/columns';
 import { teamSlugFromName } from '../utils/teamUtils';
+import { PlayerLink } from './PlayerLink';
+import { playerSlugFromRow } from '../utils/playerUtils';
 
 interface DataTableProps {
   data: any[];
@@ -13,6 +15,8 @@ interface DataTableProps {
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
   linkTeams?: boolean;
+  linkPlayers?: boolean;
+  linkTransfers?: boolean;
 }
 
 type SortDirection = 'asc' | 'desc' | null;
@@ -28,6 +32,8 @@ export function DataTable({
   onPageChange,
   onPageSizeChange,
   linkTeams = false,
+  linkPlayers = false,
+  linkTransfers = false,
 }: DataTableProps) {
   // Filter and order columns based on columnOrder
   const visibleCols = columnOrder
@@ -180,16 +186,32 @@ export function DataTable({
                       isTeamNameColumn(col.id, col.label) &&
                       typeof cellValue === 'string' &&
                       cellValue.trim().length > 0;
+                    const isPlayerColumn =
+                      (linkPlayers || linkTransfers) &&
+                      isPlayerNameColumn(col.id, col.label) &&
+                      typeof cellValue === 'string' &&
+                      cellValue.trim().length > 0;
+                    const isTransferTeamCol =
+                      linkTransfers &&
+                      isTransferTeamColumn(col.id, col.label) &&
+                      typeof cellValue === 'string' &&
+                      cellValue.trim().length > 0;
 
                     return (
                       <td key={col.id} className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-700 whitespace-nowrap">
-                        {isTeamColumn ? (
+                        {isTeamColumn || isTransferTeamCol ? (
                           <Link
                             to={`/teams/${teamSlugFromName(cellValue as string)}`}
                             className="text-primary font-semibold hover:underline"
                           >
                             {cellValue}
                           </Link>
+                        ) : isPlayerColumn ? (
+                          <PlayerLink
+                            name={String(cellValue)}
+                            row={row}
+                            slug={playerSlugFromRow(row)}
+                          />
                         ) : (
                           formatValue(cellValue, col.type)
                         )}
@@ -261,4 +283,26 @@ function isTeamNameColumn(id: string, label?: string): boolean {
     (normalizedLabel ? candidateIds.includes(normalizedLabel) : false)
   );
 }
+
+function isTransferTeamColumn(id: string, label?: string): boolean {
+  const normalizedId = id.replace(/\s+/g, '_').toLowerCase();
+  const normalizedLabel = label?.replace(/\s+/g, '_').toLowerCase();
+  // For transfers, check for Team and NewTeam columns
+  const candidateIds = ['team', 'new_team', 'newteam', 'to_team', 'toteam'];
+  return (
+    candidateIds.includes(normalizedId) ||
+    (normalizedLabel ? candidateIds.includes(normalizedLabel) : false)
+  );
+}
+
+function isPlayerNameColumn(id: string, label?: string): boolean {
+  const normalizedId = id.replace(/\s+/g, '_').toLowerCase();
+  const normalizedLabel = label?.replace(/\s+/g, '_').toLowerCase();
+  const candidateIds = ['name', 'player', 'player_name', 'playername'];
+  return (
+    candidateIds.includes(normalizedId) ||
+    (normalizedLabel ? candidateIds.includes(normalizedLabel) : false)
+  );
+}
+
 

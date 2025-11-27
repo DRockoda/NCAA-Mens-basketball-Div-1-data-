@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
-import { getColumnsForMode, inferColumnsFromData, type ColumnConfig } from '../config/columns';
+import { useAppState } from '../context/AppStateContext';
+import { getColumnsForMode, inferColumnsFromData, filterEmptyColumns, type ColumnConfig } from '../config/columns';
 import { applyFilters, type Filters } from '../utils/filters';
 import { downloadCSV, downloadXLSX } from '../utils/download';
 import { SearchBar } from './SearchBar';
@@ -27,29 +28,48 @@ const MODE_DESCRIPTIONS: Record<Mode, string> = {
 
 export function DataExplorer({ mode }: DataExplorerProps) {
   const { datasets, loading, error } = useData();
-  const [searchTags, setSearchTags] = useState<string[]>([]);
-  const [filters, setFilters] = useState<Filters>({});
-  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set());
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const { state, updatePlayersTableState, updateTeamsTableState, updateTransferTableState } = useAppState();
   const [columns, setColumns] = useState<ColumnConfig[]>([]);
-  const [columnOrder, setColumnOrder] = useState<string[]>([]);
   const [showDownloadDropdown, setShowDownloadDropdown] = useState(false);
   const downloadDropdownRef = useRef<HTMLDivElement>(null);
 
   const rawData = datasets ? datasets[mode] : [];
   
-  // Reset state whenever mode changes to prevent column/filter bleed-over between explorers
+  // Get persisted state for all modes
+  const persistedState = mode === 'players' ? state.playersTableState 
+    : mode === 'teams' ? state.teamsTableState 
+    : mode === 'transfers' ? state.transferTableState 
+    : null;
+  const updateState = mode === 'players' ? updatePlayersTableState 
+    : mode === 'teams' ? updateTeamsTableState 
+    : mode === 'transfers' ? updateTransferTableState 
+    : null;
+  
+  // Initialize state from persisted state or defaults
+  const [searchTags, setSearchTags] = useState<string[]>(persistedState?.searchTags ?? []);
+  const [filters, setFilters] = useState<Filters>(persistedState?.filters ?? {});
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(persistedState?.visibleColumns ?? new Set());
+  const [currentPage, setCurrentPage] = useState(persistedState?.currentPage ?? 1);
+  const [pageSize, setPageSize] = useState(persistedState?.pageSize ?? 50);
+  const [columnOrder, setColumnOrder] = useState<string[]>(persistedState?.columnOrder ?? []);
+  
+  // Reset columns when mode changes (columns are mode-specific)
   useEffect(() => {
-    setSearchTags([]);
-    setFilters({});
     setColumns([]);
-    setVisibleColumns(new Set());
-    setColumnOrder([]);
-    setCurrentPage(1);
-    setPageSize(50);
-    setShowDownloadDropdown(false);
   }, [mode]);
+  
+  // Load persisted state on mount for all modes
+  useEffect(() => {
+    if (persistedState) {
+      setSearchTags(persistedState.searchTags);
+      setFilters(persistedState.filters);
+      setVisibleColumns(persistedState.visibleColumns);
+      setCurrentPage(persistedState.currentPage);
+      setPageSize(persistedState.pageSize);
+      setColumnOrder(persistedState.columnOrder);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]); // Only re-run when mode changes
   
   // Infer columns from data if needed
   useEffect(() => {
@@ -248,7 +268,8 @@ export function DataExplorer({ mode }: DataExplorerProps) {
         }
       }
       
-      setColumns(finalCols);
+      // Filter out empty columns before setting
+      setColumns(filterEmptyColumns(finalCols));
       
       // Set default visible columns only if not already set
       if (mode === 'players') {
@@ -397,12 +418,17 @@ export function DataExplorer({ mode }: DataExplorerProps) {
     if (columns.length === 0) return [];
     let data = applyFilters(rawData, filters, searchTags, columns);
     
-    // Remove duplicates for transfers based on player name
+    // Remove duplicates for transfers based on player name (but don't filter out rows without names)
     if (mode === 'transfers') {
       const seen = new Set<string>();
       data = data.filter(row => {
         const name = String(row['Name'] || row['PlayerName'] || '').trim();
-        if (!name || seen.has(name)) {
+        // If no name, include the row (might be valid data)
+        if (!name) {
+          return true;
+        }
+        // If name exists and we've seen it, exclude as duplicate
+        if (seen.has(name)) {
           return false;
         }
         seen.add(name);
@@ -414,11 +440,15 @@ export function DataExplorer({ mode }: DataExplorerProps) {
   }, [rawData, filters, searchTags, columns, mode]);
 
   const handleFilterChange = (columnId: string, filter: Filters[string]) => {
-    setFilters(prev => ({
-      ...prev,
+    const newFilters = {
+      ...filters,
       [columnId]: filter,
-    }));
+    };
+    setFilters(newFilters);
     setCurrentPage(1); // Reset to first page when filter changes
+    if (updateState) {
+      updateState({ filters: newFilters, currentPage: 1 });
+    }
   };
 
   const handleToggleColumn = (columnId: string) => {
@@ -428,6 +458,9 @@ export function DataExplorer({ mode }: DataExplorerProps) {
         next.delete(columnId);
       } else {
         next.add(columnId);
+      }
+      if (updateState) {
+        updateState({ visibleColumns: next });
       }
       return next;
     });
@@ -535,6 +568,9 @@ export function DataExplorer({ mode }: DataExplorerProps) {
               onSearchTagsChange={(tags) => {
                 setSearchTags(tags);
                 setCurrentPage(1);
+                if (updateState) {
+                  updateState({ searchTags: tags, currentPage: 1 });
+                }
               }}
               data={rawData}
               columns={columns}
@@ -613,7 +649,15 @@ export function DataExplorer({ mode }: DataExplorerProps) {
                   newVisible.add(columnId);
                   // Add to end of columnOrder if not already there
                   if (!columnOrder.includes(columnId)) {
-                    setColumnOrder([...columnOrder, columnId]);
+                    const newOrder = [...columnOrder, columnId];
+                    setColumnOrder(newOrder);
+                    if (updateState) {
+                      updateState({ columnOrder: newOrder, visibleColumns: newVisible });
+                    }
+                  } else {
+                    if (updateState) {
+                      updateState({ visibleColumns: newVisible });
+                    }
                   }
                 }
                 setVisibleColumns(newVisible);
@@ -656,16 +700,27 @@ export function DataExplorer({ mode }: DataExplorerProps) {
                 // Update state
                 setVisibleColumns(newVisible);
                 setColumnOrder(newOrder);
+                if (updateState) {
+                  updateState({ visibleColumns: newVisible, columnOrder: newOrder });
+                }
               }}
               onDeselectAllColumns={() => {
                 // Deselect all columns
-                setVisibleColumns(new Set());
+                const newVisible = new Set();
+                setVisibleColumns(newVisible);
+                if (updateState) {
+                  updateState({ visibleColumns: newVisible });
+                }
               }}
               onColumnOrderChange={(newOrder) => {
                 // For all modes, just update the order
                 // Allow users to reorder columns freely, including core columns in transfers
                 setColumnOrder(newOrder);
-                setVisibleColumns(new Set(newOrder.filter(id => visibleColumns.has(id))));
+                const newVisible = new Set(newOrder.filter(id => visibleColumns.has(id)));
+                setVisibleColumns(newVisible);
+                if (updateState) {
+                  updateState({ columnOrder: newOrder, visibleColumns: newVisible });
+                }
               }}
               filters={filters}
               onFilterChange={handleFilterChange}
@@ -675,6 +730,9 @@ export function DataExplorer({ mode }: DataExplorerProps) {
                 setFilters({});
                 setSearchTags([]);
                 setCurrentPage(1);
+                if (updateState) {
+                  updateState({ filters: {}, searchTags: [], currentPage: 1 });
+                }
               }}
             />
           </div>
@@ -686,12 +744,22 @@ export function DataExplorer({ mode }: DataExplorerProps) {
               columnOrder={columnOrder}
               currentPage={currentPage}
               pageSize={pageSize}
-              onPageChange={setCurrentPage}
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                if (updateState) {
+                  updateState({ currentPage: page });
+                }
+              }}
               onPageSizeChange={(size) => {
                 setPageSize(size);
                 setCurrentPage(1);
+                if (updateState) {
+                  updateState({ pageSize: size, currentPage: 1 });
+                }
               }}
               linkTeams={mode === 'teams'}
+              linkPlayers={mode === 'players'}
+              linkTransfers={mode === 'transfers'}
             />
           </div>
         </div>

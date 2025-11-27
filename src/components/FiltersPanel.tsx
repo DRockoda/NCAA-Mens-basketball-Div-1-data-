@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ColumnConfig } from '../config/columns';
+import { filterEmptyColumns } from '../config/columns';
 import type { Filter, Filters } from '../utils/filters';
 
 // Separate component for Team Name filter to use useState
@@ -575,7 +576,8 @@ export function FiltersPanel({
                       onSelectAllColumns();
                     } else {
                       // Fallback: Select all filtered columns
-                      const filteredColumns = columns.filter(col => {
+                      let filteredColumns = filterEmptyColumns(columns);
+                      filteredColumns = filteredColumns.filter(col => {
                         const lowerId = col.id.toLowerCase();
                         const lowerLabel = col.label.toLowerCase();
                         return !lowerId.includes('s. no') && 
@@ -623,8 +625,19 @@ export function FiltersPanel({
                 </div>
                 <div className="space-y-2">
               {(() => {
-                // Filter out S. No. and similar columns
-                const filteredColumns = columns.filter(col => {
+                // First filter out empty columns (_EMPTY, etc.)
+                let filteredColumns = filterEmptyColumns(columns);
+                
+                // Additional safety check: filter out any columns with truly blank labels or IDs
+                filteredColumns = filteredColumns.filter(col => {
+                  const id = String(col.id || '').trim();
+                  const label = String(col.label || '').trim();
+                  // Must have both non-empty ID and label
+                  return id.length > 0 && label.length > 0;
+                });
+                
+                // Then filter out S. No. and similar columns
+                filteredColumns = filteredColumns.filter(col => {
                   const lowerId = col.id.toLowerCase();
                   const lowerLabel = col.label.toLowerCase();
                   return !lowerId.includes('s. no') && 
@@ -787,7 +800,7 @@ export function FiltersPanel({
                         draggable={false}
                         className="rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                       />
-                      <span className="flex-1 text-gray-700 select-none">{col.label}</span>
+                      <span className="flex-1 text-gray-700 select-none">{col.label || col.id || 'Unnamed Column'}</span>
                       <div className="flex flex-col gap-0.5 opacity-60 hover:opacity-100 transition-opacity">
                         <svg
                           className="w-4 h-4 text-gray-400 pointer-events-none"

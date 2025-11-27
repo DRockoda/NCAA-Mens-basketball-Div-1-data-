@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import type { ColumnConfig } from '../config/columns';
+import { filterEmptyColumns } from '../config/columns';
 
 function downloadFile(content: BlobPart, mime: string, filename: string) {
   const blob = new Blob([content], { type: mime });
@@ -18,14 +19,23 @@ export function downloadCSV(rows: any[], fileName: string, visibleColumns?: stri
   }
 
   // Use visible columns if provided, otherwise use all columns
-  const columnIds = visibleColumns && visibleColumns.length > 0 
+  let columnIds = visibleColumns && visibleColumns.length > 0 
     ? visibleColumns 
     : Object.keys(rows[0]);
   
+  // Filter out _EMPTY columns
+  columnIds = columnIds.filter(colId => {
+    const trimmed = colId.trim();
+    return trimmed.length > 0 && !trimmed.startsWith('_EMPTY');
+  });
+  
+  // Filter columns config if provided
+  const filteredColumns = columns ? filterEmptyColumns(columns) : columns;
+  
   // Map column IDs to labels for headers
   const headerLabels = columnIds.map(colId => {
-    if (columns) {
-      const col = columns.find(c => c.id === colId);
+    if (filteredColumns) {
+      const col = filteredColumns.find(c => c.id === colId);
       return col ? col.label : colId;
     }
     return colId;
@@ -65,14 +75,23 @@ export function downloadXLSX(rows: any[], fileName: string, visibleColumns?: str
   }
 
   // Use visible columns if provided, otherwise use all columns
-  const columnIds = visibleColumns && visibleColumns.length > 0 
+  let columnIds = visibleColumns && visibleColumns.length > 0 
     ? visibleColumns 
     : Object.keys(rows[0]);
   
+  // Filter out _EMPTY columns
+  columnIds = columnIds.filter(colId => {
+    const trimmed = colId.trim();
+    return trimmed.length > 0 && !trimmed.startsWith('_EMPTY');
+  });
+  
+  // Filter columns config if provided
+  const filteredColumns = columns ? filterEmptyColumns(columns) : columns;
+  
   // Map column IDs to labels for headers
   const headerLabels = columnIds.map(colId => {
-    if (columns) {
-      const col = columns.find(c => c.id === colId);
+    if (filteredColumns) {
+      const col = filteredColumns.find(c => c.id === colId);
       return col ? col.label : colId;
     }
     return colId;
