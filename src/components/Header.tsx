@@ -8,7 +8,7 @@ type HeaderProps = {
 export function Header({ showMenuButton = false, onMenuClick }: HeaderProps) {
   return (
     <header className="bg-primary text-white shadow-md">
-      <div className="container mx-auto flex items-center justify-center gap-3 sm:gap-4 px-4 py-3 sm:py-4">
+      <div className="container mx-auto flex items-center justify-start md:justify-center gap-3 sm:gap-4 px-4 py-3 sm:py-4">
         {showMenuButton && (
           <button
             type="button"

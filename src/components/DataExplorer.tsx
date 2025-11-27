@@ -15,9 +15,9 @@ interface DataExplorerProps {
 }
 
 const MODE_LABELS: Record<Mode, string> = {
-  teams: 'Team Data',
-  players: 'Player Data',
-  transfers: 'Transfer Data',
+  teams: 'Team Stats',
+  players: 'Player Stats',
+  transfers: 'Track Transfers',
 };
 
 const MODE_DESCRIPTIONS: Record<Mode, string> = {

@@ -4,9 +4,9 @@ import { Header } from './Header';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', path: '/dashboard', icon: '/Icons/Dashboard.svg' },
-  { label: 'Player Data', path: '/players', icon: '/Icons/Player.svg' },
-  { label: 'Team Data', path: '/teams', icon: '/Icons/Team.svg' },
-  { label: 'Transfer Data', path: '/transfers', icon: '/Icons/Transfer.svg' },
+  { label: 'Player Stats', path: '/players', icon: '/Icons/Player.svg' },
+  { label: 'Team Stats', path: '/teams', icon: '/Icons/Team.svg' },
+  { label: 'Track Transfers', path: '/transfers', icon: '/Icons/Transfer.svg' },
   { label: 'Compare', path: '/compare', icon: '/Icons/Compare.svg' },
 ];
 
