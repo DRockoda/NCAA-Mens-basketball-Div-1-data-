@@ -615,7 +615,6 @@ export function PlayerProfilePage() {
           transferImpactData && transferImpactData.length > 0 ? (
             <TransferImpactSection
               transferImpactData={transferImpactData}
-              playerName={playerName}
             />
           ) : (
             <section className="bg-white rounded-2xl shadow border border-cream/70 p-6 space-y-4">
@@ -637,14 +636,13 @@ export function PlayerProfilePage() {
 // Transfer Impact Section Component
 function TransferImpactSection({
   transferImpactData,
-  playerName,
 }: {
   transferImpactData: Array<{
     transferSeason: string;
     fromTeam: string;
     toTeam: string;
-    beforeRow: Record<string, any>;
-    afterRow: Record<string, any>;
+    beforeRow: Record<string, any> | null;
+    afterRow: Record<string, any> | null;
     stats: Array<{
       key: string;
       label: string;
@@ -654,7 +652,6 @@ function TransferImpactSection({
       percentChange: number | null;
     }>;
   }>;
-  playerName: string;
 }) {
   const [selectedTransferIndex, setSelectedTransferIndex] = useState(0);
   const latestTransfer = transferImpactData[transferImpactData.length - 1];
@@ -780,7 +777,7 @@ function TransferImpactSection({
                 )}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                From {formatStatField(biggestImprovement.before, biggestImprovement.key.includes('%') || biggestImprovement.key.includes('BPR') ? { percent: biggestImprovement.key.includes('%'), digits: biggestImprovement.key.includes('BPR') ? 2 : 1 } : { digits: 1 })} ({selectedTransfer.beforeRow['Season']}, {selectedTransfer.fromTeam}) → {formatStatField(biggestImprovement.after, biggestImprovement.key.includes('%') || biggestImprovement.key.includes('BPR') ? { percent: biggestImprovement.key.includes('%'), digits: biggestImprovement.key.includes('BPR') ? 2 : 1 } : { digits: 1 })} ({selectedTransfer.afterRow['Season']}, {selectedTransfer.toTeam})
+                From {formatStatField(biggestImprovement.before, biggestImprovement.key.includes('%') || biggestImprovement.key.includes('BPR') ? { percent: biggestImprovement.key.includes('%'), digits: biggestImprovement.key.includes('BPR') ? 2 : 1 } : { digits: 1 })} ({selectedTransfer.beforeRow?.['Season'] ?? 'N/A'}, {selectedTransfer.fromTeam}) → {formatStatField(biggestImprovement.after, biggestImprovement.key.includes('%') || biggestImprovement.key.includes('BPR') ? { percent: biggestImprovement.key.includes('%'), digits: biggestImprovement.key.includes('BPR') ? 2 : 1 } : { digits: 1 })} ({selectedTransfer.afterRow?.['Season'] ?? 'N/A'}, {selectedTransfer.toTeam})
               </p>
             </>
           ) : (
@@ -802,7 +799,7 @@ function TransferImpactSection({
                 )}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                From {formatStatField(biggestDecline.before, biggestDecline.key.includes('%') || biggestDecline.key.includes('BPR') ? { percent: biggestDecline.key.includes('%'), digits: biggestDecline.key.includes('BPR') ? 2 : 1 } : { digits: 1 })} ({selectedTransfer.beforeRow['Season']}, {selectedTransfer.fromTeam}) → {formatStatField(biggestDecline.after, biggestDecline.key.includes('%') || biggestDecline.key.includes('BPR') ? { percent: biggestDecline.key.includes('%'), digits: biggestDecline.key.includes('BPR') ? 2 : 1 } : { digits: 1 })} ({selectedTransfer.afterRow['Season']}, {selectedTransfer.toTeam})
+                From {formatStatField(biggestDecline.before, biggestDecline.key.includes('%') || biggestDecline.key.includes('BPR') ? { percent: biggestDecline.key.includes('%'), digits: biggestDecline.key.includes('BPR') ? 2 : 1 } : { digits: 1 })} ({selectedTransfer.beforeRow?.['Season'] ?? 'N/A'}, {selectedTransfer.fromTeam}) → {formatStatField(biggestDecline.after, biggestDecline.key.includes('%') || biggestDecline.key.includes('BPR') ? { percent: biggestDecline.key.includes('%'), digits: biggestDecline.key.includes('BPR') ? 2 : 1 } : { digits: 1 })} ({selectedTransfer.afterRow?.['Season'] ?? 'N/A'}, {selectedTransfer.toTeam})
               </p>
             </>
           ) : (
@@ -833,10 +830,10 @@ function TransferImpactSection({
               <tr>
                 <th className="px-4 py-3 whitespace-nowrap">Stat</th>
                 <th className="px-4 py-3 whitespace-nowrap">
-                  Before transfer ({selectedTransfer.beforeRow['Season']}, {selectedTransfer.fromTeam})
+                  Before transfer ({selectedTransfer.beforeRow?.['Season'] ?? 'N/A'}, {selectedTransfer.fromTeam})
                 </th>
                 <th className="px-4 py-3 whitespace-nowrap">
-                  After transfer ({selectedTransfer.afterRow['Season']}, {selectedTransfer.toTeam})
+                  After transfer ({selectedTransfer.afterRow?.['Season'] ?? 'N/A'}, {selectedTransfer.toTeam})
                 </th>
                 <th className="px-4 py-3 whitespace-nowrap text-right">Δ (Delta)</th>
               </tr>

@@ -706,7 +706,7 @@ export function DataExplorer({ mode }: DataExplorerProps) {
               }}
               onDeselectAllColumns={() => {
                 // Deselect all columns
-                const newVisible = new Set();
+                const newVisible = new Set<string>();
                 setVisibleColumns(newVisible);
                 if (updateState) {
                   updateState({ visibleColumns: newVisible });
@@ -716,7 +716,7 @@ export function DataExplorer({ mode }: DataExplorerProps) {
                 // For all modes, just update the order
                 // Allow users to reorder columns freely, including core columns in transfers
                 setColumnOrder(newOrder);
-                const newVisible = new Set(newOrder.filter(id => visibleColumns.has(id)));
+                const newVisible = new Set<string>(newOrder.filter(id => visibleColumns.has(id)));
                 setVisibleColumns(newVisible);
                 if (updateState) {
                   updateState({ columnOrder: newOrder, visibleColumns: newVisible });
