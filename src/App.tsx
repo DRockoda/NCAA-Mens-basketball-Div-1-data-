@@ -12,26 +12,26 @@ import { PlayerProfilePage } from './components/PlayerProfilePage';
 function App() {
   return (
     <AppStateProvider>
-      <DataProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route element={<SidebarLayout />}>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Home />} />
-              <Route path="/teams" element={<DataExplorer mode="teams" />} />
-              <Route path="/teams/:teamId" element={<TeamPage />} />
-              <Route path="/players" element={<DataExplorer mode="players" />} />
+    <DataProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route element={<SidebarLayout />}>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<Home />} />
+            <Route path="/teams" element={<DataExplorer mode="teams" />} />
+            <Route path="/teams/:teamId" element={<TeamPage />} />
+            <Route path="/players" element={<DataExplorer mode="players" />} />
               <Route path="/players/:playerId" element={<PlayerProfilePage />} />
-              <Route path="/transfers" element={<DataExplorer mode="transfers" />} />
-              <Route path="/compare" element={<Navigate to="/compare/players" replace />} />
-              <Route path="/compare/players" element={<ComparePage mode="players" />} />
-              <Route path="/compare/teams" element={<ComparePage mode="teams" />} />
-              <Route path="/glossary" element={<Glossary />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </DataProvider>
+            <Route path="/transfers" element={<DataExplorer mode="transfers" />} />
+            <Route path="/compare" element={<Navigate to="/compare/players" replace />} />
+            <Route path="/compare/players" element={<ComparePage mode="players" />} />
+            <Route path="/compare/teams" element={<ComparePage mode="teams" />} />
+            <Route path="/glossary" element={<Glossary />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </DataProvider>
     </AppStateProvider>
   );
 }

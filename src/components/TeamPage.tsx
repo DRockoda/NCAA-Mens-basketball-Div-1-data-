@@ -456,9 +456,9 @@ export function TeamPage() {
                   <option value="">No seasons available</option>
                 ) : (
                   seasons.map((season) => (
-                    <option key={season} value={season}>
-                      {season}
-                    </option>
+                  <option key={season} value={season}>
+                    {season}
+                  </option>
                   ))
                 )}
               </select>

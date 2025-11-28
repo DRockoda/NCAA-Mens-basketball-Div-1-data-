@@ -277,6 +277,98 @@ This project is developed by the Sports Innovation Institute at Indiana Universi
 
 ---
 
+## 🚀 Deploy to Netlify
+
+Netlify is an excellent platform for hosting this React application. Here are two ways to deploy:
+
+### Option 1: Deploy via Netlify UI (Recommended for First-Time Users)
+
+1. **Build your project locally** (optional, to test):
+   ```bash
+   npm run build
+   ```
+
+2. **Push to GitHub** (if not already done):
+   ```bash
+   git add .
+   git commit -m "Prepare for Netlify deployment"
+   git push origin main
+   ```
+
+3. **Sign up/Login to Netlify**:
+   - Go to [netlify.com](https://www.netlify.com)
+   - Sign up with GitHub (recommended) or email
+
+4. **Create a New Site**:
+   - Click "Add new site" → "Import an existing project"
+   - Choose "Deploy with GitHub"
+   - Authorize Netlify to access your GitHub account
+   - Select your repository
+
+5. **Configure Build Settings**:
+   - **Build command**: `npm run build`
+   - **Publish directory**: `dist`
+   - Netlify will auto-detect these from `netlify.toml`, but you can verify
+
+6. **Deploy**:
+   - Click "Deploy site"
+   - Netlify will build and deploy your app
+   - You'll get a URL like `your-app-name.netlify.app`
+
+7. **Add Your Data File**:
+   - After deployment, you need to add your Excel file
+   - Go to your site's dashboard → "Deploys" → "Deploy settings" → "Build hooks"
+   - Or manually upload the Excel file to `public/data/` via Netlify's file browser
+   - **Note**: For production, consider hosting the Excel file separately or using a CDN
+
+### Option 2: Deploy via Netlify CLI
+
+1. **Install Netlify CLI**:
+   ```bash
+   npm install -g netlify-cli
+   ```
+
+2. **Login to Netlify**:
+   ```bash
+   netlify login
+   ```
+
+3. **Initialize and Deploy**:
+   ```bash
+   # Initialize (first time only)
+   netlify init
+   
+   # Follow the prompts:
+   # - Create & configure a new site
+   # - Team: Choose your team
+   # - Site name: (or leave blank for auto-generated)
+   # - Build command: npm run build
+   # - Directory to deploy: dist
+   # - Netlify functions folder: (leave blank)
+   
+   # Deploy
+   netlify deploy --prod
+   ```
+
+### Important Notes for Netlify Deployment
+
+- **SPA Routing**: The `netlify.toml` file includes redirect rules to handle React Router's client-side routing
+- **Excel File**: The Excel file in `public/data/` is excluded from git. You'll need to:
+  - Upload it manually via Netlify's dashboard, or
+  - Include it in your repository (if it's not too large), or
+  - Host it separately and update the code to fetch it from a CDN
+- **Environment Variables**: If needed, add them in Netlify dashboard → Site settings → Environment variables
+- **Custom Domain**: You can add a custom domain in Netlify dashboard → Domain settings
+
+### Continuous Deployment
+
+Once connected to GitHub, Netlify will automatically:
+- Deploy when you push to your main branch
+- Create preview deployments for pull requests
+- Show build status in your GitHub repository
+
+---
+
 ## 📄 License
 
 MIT License - feel free to use this project for your own purposes.

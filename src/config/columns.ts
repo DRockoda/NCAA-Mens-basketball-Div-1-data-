@@ -243,7 +243,7 @@ export function inferColumnsFromData(data: any[], mode: 'teams' | 'players' | 't
       if (!generatedLabel || generatedLabel.trim().length === 0) {
         generatedLabel = key;
       }
-      
+
       return {
         id: key,
         label: generatedLabel,
