@@ -757,7 +757,7 @@ export function DataExplorer({ mode }: DataExplorerProps) {
                   updateState({ pageSize: size, currentPage: 1 });
                 }
               }}
-              linkTeams={mode === 'teams'}
+              linkTeams={mode === 'teams' || mode === 'players'}
               linkPlayers={mode === 'players'}
               linkTransfers={mode === 'transfers'}
             />
