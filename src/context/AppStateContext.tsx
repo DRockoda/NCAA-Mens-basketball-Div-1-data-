@@ -9,6 +9,7 @@ interface TableState {
   columnOrder: string[];
   currentPage: number;
   pageSize: number;
+  hasInitializedColumns?: boolean;
 }
 
 interface CompareState {
@@ -36,12 +37,15 @@ function loadFromStorage(): AppState {
       // Convert Set objects back from arrays
       if (parsed.playersTableState?.visibleColumns) {
         parsed.playersTableState.visibleColumns = new Set(parsed.playersTableState.visibleColumns);
+        parsed.playersTableState.hasInitializedColumns = parsed.playersTableState.hasInitializedColumns ?? false;
       }
       if (parsed.teamsTableState?.visibleColumns) {
         parsed.teamsTableState.visibleColumns = new Set(parsed.teamsTableState.visibleColumns);
+        parsed.teamsTableState.hasInitializedColumns = parsed.teamsTableState.hasInitializedColumns ?? false;
       }
       if (parsed.transferTableState?.visibleColumns) {
         parsed.transferTableState.visibleColumns = new Set(parsed.transferTableState.visibleColumns);
+        parsed.transferTableState.hasInitializedColumns = parsed.transferTableState.hasInitializedColumns ?? false;
       }
       // Ensure transferTableState exists (for backward compatibility with old localStorage)
       if (!parsed.transferTableState) {
@@ -70,18 +74,21 @@ function saveToStorage(state: AppState): void {
         ? {
             ...state.playersTableState,
             visibleColumns: Array.from(state.playersTableState.visibleColumns),
+            hasInitializedColumns: state.playersTableState.hasInitializedColumns ?? false,
           }
         : null,
       teamsTableState: state.teamsTableState
         ? {
             ...state.teamsTableState,
             visibleColumns: Array.from(state.teamsTableState.visibleColumns),
+            hasInitializedColumns: state.teamsTableState.hasInitializedColumns ?? false,
           }
         : null,
       transferTableState: state.transferTableState
         ? {
             ...state.transferTableState,
             visibleColumns: Array.from(state.transferTableState.visibleColumns),
+            hasInitializedColumns: state.transferTableState.hasInitializedColumns ?? false,
           }
         : null,
     };
@@ -122,6 +129,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           columnOrder: [],
           currentPage: 1,
           pageSize: 50,
+          hasInitializedColumns: false,
         }),
         ...updates,
       },
@@ -139,6 +147,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           columnOrder: [],
           currentPage: 1,
           pageSize: 50,
+          hasInitializedColumns: false,
         }),
         ...updates,
       },
@@ -156,6 +165,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           columnOrder: [],
           currentPage: 1,
           pageSize: 50,
+          hasInitializedColumns: false,
         }),
         ...updates,
       },

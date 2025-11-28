@@ -44,6 +44,7 @@ export function DataExplorer({ mode }: DataExplorerProps) {
     : mode === 'teams' ? updateTeamsTableState 
     : mode === 'transfers' ? updateTransferTableState 
     : null;
+  const hasInitializedColumns = persistedState?.hasInitializedColumns ?? false;
   
   // Initialize state from persisted state or defaults
   const [searchTags, setSearchTags] = useState<string[]>(persistedState?.searchTags ?? []);
@@ -271,6 +272,13 @@ export function DataExplorer({ mode }: DataExplorerProps) {
       // Filter out empty columns before setting
       finalCols = filterEmptyColumns(finalCols);
       setColumns(finalCols);
+
+      // We'll compute new visible columns / order locally to avoid relying on async state updates
+      let nextVisibleColumns = visibleColumns;
+      let nextColumnOrder = columnOrder;
+      let visibleChanged = false;
+      let orderChanged = false;
+      let initializedChanged = false;
       
       // Set default visible columns only if not already set
       if (mode === 'players') {
@@ -303,14 +311,17 @@ export function DataExplorer({ mode }: DataExplorerProps) {
         }
         
         // Set default visible columns and order
-        if (visibleColumns.size === 0) {
+        if (!hasInitializedColumns || visibleColumns.size === 0) {
           // On first visit (no persisted state), show ALL columns in Manage Columns
-          // while keeping the table order based on our preferred ordering.
           const allIds = finalCols.map(c => c.id);
-          setVisibleColumns(new Set(allIds));
+          nextVisibleColumns = new Set<string>(allIds);
+          visibleChanged = true;
+          initializedChanged = true;
         }
-        if (columnOrder.length === 0) {
-          setColumnOrder(orderedColumns.length > 0 ? orderedColumns : finalCols.map(c => c.id));
+        if ((!hasInitializedColumns || nextColumnOrder.length === 0)) {
+          nextColumnOrder = orderedColumns.length > 0 ? orderedColumns : finalCols.map(c => c.id);
+          orderChanged = true;
+          initializedChanged = true;
         }
       } else if (mode === 'teams') {
         // For teams, use the specified column order
@@ -369,12 +380,16 @@ export function DataExplorer({ mode }: DataExplorerProps) {
         }
         
         // Set default visible columns and order
-        if (visibleColumns.size === 0) {
+        if (!hasInitializedColumns || visibleColumns.size === 0) {
           const allIds = finalCols.map(c => c.id);
-          setVisibleColumns(new Set(allIds));
+          nextVisibleColumns = new Set<string>(allIds);
+          visibleChanged = true;
+          initializedChanged = true;
         }
-        if (columnOrder.length === 0) {
-          setColumnOrder(orderedColumns.length > 0 ? orderedColumns : finalCols.map(c => c.id));
+        if (!hasInitializedColumns || nextColumnOrder.length === 0) {
+          nextColumnOrder = orderedColumns.length > 0 ? orderedColumns : finalCols.map(c => c.id);
+          orderChanged = true;
+          initializedChanged = true;
         }
       } else if (mode === 'transfers') {
         // For transfers, only show specific columns in this exact order: Season, Transfer_Rank, Name, Team, New_Team, HS_Ranking
@@ -393,20 +408,28 @@ export function DataExplorer({ mode }: DataExplorerProps) {
         }
         
         if (orderedColumns.length > 0) {
-          if (visibleColumns.size === 0) {
+          if (!hasInitializedColumns || visibleColumns.size === 0) {
             const allIds = finalCols.map(c => c.id);
-            setVisibleColumns(new Set(allIds));
+            nextVisibleColumns = new Set<string>(allIds);
+            visibleChanged = true;
+            initializedChanged = true;
           }
           // Always set column order to the default sequence for transfers (or all columns if none matched)
-          if (columnOrder.length === 0) {
-            setColumnOrder(orderedColumns.length > 0 ? orderedColumns : finalCols.map(c => c.id));
+          if (!hasInitializedColumns || nextColumnOrder.length === 0) {
+            nextColumnOrder = orderedColumns.length > 0 ? orderedColumns : finalCols.map(c => c.id);
+            orderChanged = true;
+            initializedChanged = true;
           }
-        } else if (visibleColumns.size === 0) {
+        } else if (!hasInitializedColumns || visibleColumns.size === 0) {
           // Fallback: no special transfer ordering found, just show all columns in their natural order
           const allIds = finalCols.map(c => c.id);
-          setVisibleColumns(new Set(allIds));
-          if (columnOrder.length === 0) {
-            setColumnOrder(allIds);
+          nextVisibleColumns = new Set<string>(allIds);
+          visibleChanged = true;
+          initializedChanged = true;
+          if (nextColumnOrder.length === 0) {
+            nextColumnOrder = allIds;
+            orderChanged = true;
+            initializedChanged = true;
           }
         }
       } else {
@@ -414,19 +437,46 @@ export function DataExplorer({ mode }: DataExplorerProps) {
           finalCols.filter(c => c.defaultVisible).map(c => c.id)
         );
         if (defaultVisible.size > 0) {
-          setVisibleColumns(defaultVisible);
+          nextVisibleColumns = defaultVisible;
+          visibleChanged = true;
           // For non-transfers, maintain order from columns array
           const ordered = finalCols
             .filter(c => defaultVisible.has(c.id))
             .map(c => c.id);
-          setColumnOrder(ordered);
+          nextColumnOrder = ordered;
+          orderChanged = true;
         }
       }
       
       // Set initial column order if not already set (for transfers, this shouldn't be needed)
-      if (columnOrder.length === 0 && finalCols.length > 0 && mode !== 'transfers') {
-        const visibleIds = Array.from(visibleColumns.size > 0 ? visibleColumns : new Set(finalCols.filter(c => c.defaultVisible).map(c => c.id)));
-        setColumnOrder(visibleIds.length > 0 ? visibleIds : finalCols.map(c => c.id));
+      if (nextColumnOrder.length === 0 && finalCols.length > 0 && mode !== 'transfers') {
+        const visibleIds = Array.from(
+          (visibleChanged ? nextVisibleColumns : visibleColumns).size > 0
+            ? (visibleChanged ? nextVisibleColumns : visibleColumns)
+            : new Set(finalCols.filter(c => c.defaultVisible).map(c => c.id))
+        );
+        nextColumnOrder = visibleIds.length > 0 ? visibleIds : finalCols.map(c => c.id);
+        orderChanged = true;
+      }
+
+      if (visibleChanged) {
+        setVisibleColumns(nextVisibleColumns);
+        if (updateState) {
+          updateState({ visibleColumns: nextVisibleColumns });
+        }
+      }
+
+      if (orderChanged) {
+        setColumnOrder(nextColumnOrder);
+        if (updateState) {
+          updateState({ columnOrder: nextColumnOrder });
+        }
+      }
+
+      if (initializedChanged) {
+        if (updateState) {
+          updateState({ hasInitializedColumns: true });
+        }
       }
     }
   }, [rawData, mode, columns.length]);

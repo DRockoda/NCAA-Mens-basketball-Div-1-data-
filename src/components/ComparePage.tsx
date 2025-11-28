@@ -221,8 +221,12 @@ export function ComparePage({ mode }: ComparePageProps) {
       setSelectedEntities(persistedState.selectedEntities);
       setSelectedStat(persistedState.selectedStat || config.statOptions[0].value);
       setSeasonView(persistedState.seasonView || 'ALL');
+    } else {
+      setSelectedEntities([]);
+      setSelectedStat(config.statOptions[0].value);
+      setSeasonView('ALL');
     }
-  }, [mode]); // Only re-run when mode changes
+  }, [mode, persistedState, config.statOptions]);
 
   const availableSeasons = useMemo(() => {
     if (!data) return [];
