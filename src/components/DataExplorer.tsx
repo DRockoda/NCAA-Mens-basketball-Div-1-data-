@@ -269,7 +269,8 @@ export function DataExplorer({ mode }: DataExplorerProps) {
       }
       
       // Filter out empty columns before setting
-      setColumns(filterEmptyColumns(finalCols));
+      finalCols = filterEmptyColumns(finalCols);
+      setColumns(finalCols);
       
       // Set default visible columns only if not already set
       if (mode === 'players') {
@@ -303,10 +304,13 @@ export function DataExplorer({ mode }: DataExplorerProps) {
         
         // Set default visible columns and order
         if (visibleColumns.size === 0) {
-          setVisibleColumns(new Set(orderedColumns));
+          // On first visit (no persisted state), show ALL columns in Manage Columns
+          // while keeping the table order based on our preferred ordering.
+          const allIds = finalCols.map(c => c.id);
+          setVisibleColumns(new Set(allIds));
         }
         if (columnOrder.length === 0) {
-          setColumnOrder(orderedColumns);
+          setColumnOrder(orderedColumns.length > 0 ? orderedColumns : finalCols.map(c => c.id));
         }
       } else if (mode === 'teams') {
         // For teams, use the specified column order
@@ -366,10 +370,11 @@ export function DataExplorer({ mode }: DataExplorerProps) {
         
         // Set default visible columns and order
         if (visibleColumns.size === 0) {
-          setVisibleColumns(new Set(orderedColumns));
+          const allIds = finalCols.map(c => c.id);
+          setVisibleColumns(new Set(allIds));
         }
         if (columnOrder.length === 0) {
-          setColumnOrder(orderedColumns);
+          setColumnOrder(orderedColumns.length > 0 ? orderedColumns : finalCols.map(c => c.id));
         }
       } else if (mode === 'transfers') {
         // For transfers, only show specific columns in this exact order: Season, Transfer_Rank, Name, Team, New_Team, HS_Ranking
@@ -388,9 +393,21 @@ export function DataExplorer({ mode }: DataExplorerProps) {
         }
         
         if (orderedColumns.length > 0) {
-          setVisibleColumns(new Set(orderedColumns)); // All 6: Season, Transfer_Rank, Name, Team, New_Team, HS_Ranking
-          // Always set column order to the default sequence for transfers
-          setColumnOrder(orderedColumns);
+          if (visibleColumns.size === 0) {
+            const allIds = finalCols.map(c => c.id);
+            setVisibleColumns(new Set(allIds));
+          }
+          // Always set column order to the default sequence for transfers (or all columns if none matched)
+          if (columnOrder.length === 0) {
+            setColumnOrder(orderedColumns.length > 0 ? orderedColumns : finalCols.map(c => c.id));
+          }
+        } else if (visibleColumns.size === 0) {
+          // Fallback: no special transfer ordering found, just show all columns in their natural order
+          const allIds = finalCols.map(c => c.id);
+          setVisibleColumns(new Set(allIds));
+          if (columnOrder.length === 0) {
+            setColumnOrder(allIds);
+          }
         }
       } else {
         const defaultVisible = new Set(
