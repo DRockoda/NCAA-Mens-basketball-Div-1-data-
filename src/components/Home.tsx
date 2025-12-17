@@ -25,6 +25,7 @@ type PlayerSectionConfig = {
 };
 
 const ALL_SEASONS_OPTION = 'All Seasons';
+const ALL_CONFERENCES_OPTION = 'All Conferences';
 
 const PLAYER_SECTIONS: PlayerSectionConfig[] = [
   {
@@ -144,7 +145,6 @@ export function Home() {
   const { datasets, loading, error } = useData();
   const { state, updateDashboardSeason } = useAppState();
   const [activeTab, setActiveTab] = useState<'players' | 'teams'>('players');
-  const [viewMode, setViewMode] = useState<'table' | 'visuals'>('table');
 
   const seasonList = useMemo(() => {
     if (!datasets) return [] as string[];
@@ -164,6 +164,7 @@ export function Home() {
   const [selectedSeason, setSelectedSeason] = useState<string>(
     state.dashboardSeason ?? defaultSeason
   );
+  const [selectedConference, setSelectedConference] = useState<string>(ALL_CONFERENCES_OPTION);
 
   useEffect(() => {
     if (!state.dashboardSeason && seasonList.length > 0) {
@@ -173,18 +174,46 @@ export function Home() {
     }
   }, [seasonList, state.dashboardSeason, updateDashboardSeason]);
 
+  const conferenceList = useMemo(() => {
+    if (!datasets) return [] as string[];
+    const conferences = new Set<string>();
+    ['players', 'teams'].forEach((key) => {
+      datasets[key as keyof typeof datasets]?.forEach((row: Record<string, any>) => {
+        const conference = String(row['Conference'] || '').trim();
+        if (conference) {
+          conferences.add(conference);
+        }
+      });
+    });
+    return Array.from(conferences).sort();
+  }, [datasets]);
+
   const filteredData = useMemo(() => {
     if (!datasets) return null;
     const filterRows = (rows: Record<string, any>[]) => {
-      if (selectedSeason === ALL_SEASONS_OPTION) return rows;
-      return rows.filter((row) => normalizeSeason(row['Season']) === selectedSeason);
+      let filtered = rows;
+      
+      // Filter by season
+      if (selectedSeason !== ALL_SEASONS_OPTION) {
+        filtered = filtered.filter((row) => normalizeSeason(row['Season']) === selectedSeason);
+      }
+      
+      // Filter by conference
+      if (selectedConference !== ALL_CONFERENCES_OPTION) {
+        filtered = filtered.filter((row) => {
+          const conference = String(row['Conference'] || '').trim();
+          return conference === selectedConference;
+        });
+      }
+      
+      return filtered;
     };
     return {
       players: filterRows(datasets.players),
       teams: filterRows(datasets.teams),
       transfers: filterRows(datasets.transfers),
     };
-  }, [datasets, selectedSeason]);
+  }, [datasets, selectedSeason, selectedConference]);
 
   const summary = useMemo(() => {
     if (!filteredData) {
@@ -340,43 +369,12 @@ export function Home() {
           <p className="text-gray-600 text-base sm:text-lg max-w-3xl">
             High-level trends across player, team, and transfer datasets powered by the latest Indiana University data extracts.
           </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="text-sm font-medium text-gray-700" htmlFor="season-filter">
-              Season
-            </label>
-            <select
-              id="season-filter"
-              className="px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              value={selectedSeason}
-              onChange={(e) => {
-                setSelectedSeason(e.target.value);
-                updateDashboardSeason(e.target.value);
-              }}
-            >
-              <option value={ALL_SEASONS_OPTION}>{ALL_SEASONS_OPTION}</option>
-              {seasonList.map((season) => (
-                <option key={season} value={season}>
-                  {season}
-                </option>
-              ))}
-            </select>
-          </div>
         </header>
 
-        {/* Summary Cards */}
-        <section>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            <SummaryCard title="Total Players" value={summary.players} />
-            <SummaryCard title="Total Teams" value={summary.teams} />
-            <SummaryCard title="Total Transfers" value={summary.transfers} />
-            <SummaryCard title="Number of Seasons" value={summary.seasons} />
-          </div>
-        </section>
-
-        {/* Tab selector */}
+        {/* Tab selector, Conference filter, and Season filter */}
         <section>
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-4">
               <div className="inline-flex rounded-full bg-white border border-cream/60 p-1 shadow-sm">
                 {(['players', 'teams'] as const).map((tab) => (
                   <button
@@ -391,24 +389,58 @@ export function Home() {
                   </button>
                 ))}
               </div>
-              <div className="inline-flex rounded-full bg-white border border-cream/60 p-1 shadow-sm">
-                {(['table', 'visuals'] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setViewMode(mode)}
-                    className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors ${
-                      viewMode === mode ? 'bg-primary/10 text-primary shadow-inner' : 'text-gray-600 hover:text-primary'
-                    }`}
-                  >
-                    {mode === 'table' ? 'Table view' : 'Visual view'}
-                  </button>
-                ))}
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="text-sm font-medium text-gray-700" htmlFor="conference-filter">
+                  Conference
+                </label>
+                <select
+                  id="conference-filter"
+                  className="px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  value={selectedConference}
+                  onChange={(e) => {
+                    setSelectedConference(e.target.value);
+                  }}
+                >
+                  <option value={ALL_CONFERENCES_OPTION}>{ALL_CONFERENCES_OPTION}</option>
+                  {conferenceList.map((conference) => (
+                    <option key={conference} value={conference}>
+                      {conference}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-            <div className="text-xs text-gray-500">
-              Season view: <span className="font-semibold text-text-main">{selectedSeason}</span>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="text-sm font-medium text-gray-700" htmlFor="season-filter">
+                Season
+              </label>
+              <select
+                id="season-filter"
+                className="px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                value={selectedSeason}
+                onChange={(e) => {
+                  setSelectedSeason(e.target.value);
+                  updateDashboardSeason(e.target.value);
+                }}
+              >
+                <option value={ALL_SEASONS_OPTION}>{ALL_SEASONS_OPTION}</option>
+                {seasonList.map((season) => (
+                  <option key={season} value={season}>
+                    {season}
+                  </option>
+                ))}
+              </select>
             </div>
+          </div>
+        </section>
+
+        {/* Summary Cards */}
+        <section>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <SummaryCard title="Total Players" value={summary.players} />
+            <SummaryCard title="Total Teams" value={summary.teams} />
+            <SummaryCard title="Total Transfers" value={summary.transfers} />
+            <SummaryCard title="Number of Seasons" value={summary.seasons} />
           </div>
         </section>
 
@@ -416,45 +448,27 @@ export function Home() {
         {activeTab === 'players' ? (
         <section className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {PLAYER_SECTIONS.map((config) =>
-                viewMode === 'table' ? (
+              {PLAYER_SECTIONS.map((config) => (
               <PlayerStatBlock
                 key={config.id}
                 title={config.title}
                 metricLabel={config.metricLabel}
                     rows={playerSections[config.id]?.rows || []}
               />
-                ) : (
-                  <PlayerVisualBlock
-                    key={config.id}
-                    title={config.title}
-                    metricLabel={config.metricLabel}
-                    rows={playerSections[config.id]?.rows || []}
-                  />
-                ),
-              )}
+              ))}
             </div>
           </section>
         ) : (
           <section className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {TEAM_SECTIONS.map((config) =>
-                viewMode === 'table' ? (
+              {TEAM_SECTIONS.map((config) => (
                   <TeamStatBlock
                     key={config.id}
                     title={config.title}
                     metricLabel={config.metricLabel}
                     rows={teamSections[config.id]?.rows || []}
                   />
-                ) : (
-                  <TeamVisualBlock
-                    key={config.id}
-                    title={config.title}
-                    metricLabel={config.metricLabel}
-                    rows={teamSections[config.id]?.rows || []}
-                  />
-                ),
-              )}
+              ))}
           </div>
         </section>
         )}

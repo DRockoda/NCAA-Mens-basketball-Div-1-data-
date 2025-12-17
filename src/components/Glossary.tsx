@@ -196,6 +196,7 @@ export function Glossary() {
                         <Th>Description</Th>
                         <Th>Data Values</Th>
                         <Th>Unit</Th>
+                        <Th>Data Source</Th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -205,6 +206,7 @@ export function Glossary() {
                           <Td>{entry.description || '—'}</Td>
                           <Td>{entry.dataValues || '—'}</Td>
                           <Td>{entry.dataUnit || '—'}</Td>
+                          <Td>{entry.dataSource || '—'}</Td>
                         </tr>
                       ))}
                     </tbody>
